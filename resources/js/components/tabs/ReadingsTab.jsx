@@ -2,15 +2,41 @@ export function ReadingsTab({
     createReading,
     readingForm,
     setReadingForm,
+    apiaries,
+    selectedApiaryFilter,
+    setSelectedApiaryFilter,
     hives,
     readings,
     busy,
+    showHistory = true,
+    onBack = null,
 }) {
+    const hasHives = hives.length > 0;
+
     return (
-        <section className="content-grid two-columns">
+        <section className={showHistory ? 'content-grid two-columns' : 'content-grid'}>
             <article className="panel">
-                <h2>Ajouter un releve</h2>
+                <div className="row between form-title-row">
+                    <h2>Ajouter un releve</h2>
+                    {onBack && (
+                        <button type="button" className="btn" onClick={onBack}>
+                            Retour actions rapides
+                        </button>
+                    )}
+                </div>
                 <form className="form-grid" onSubmit={createReading}>
+                    <label>
+                        Rucher
+                        <select
+                            value={selectedApiaryFilter}
+                            onChange={(event) => setSelectedApiaryFilter(event.target.value)}
+                        >
+                            <option value="all">Tous les ruchers</option>
+                            {apiaries.map((apiary) => (
+                                <option key={apiary.id} value={apiary.id}>{apiary.name}</option>
+                            ))}
+                        </select>
+                    </label>
                     <label>
                         Ruche
                         <select
@@ -68,28 +94,38 @@ export function ReadingsTab({
                             required
                         />
                     </label>
-                    <button className="btn btn-primary" type="submit" disabled={busy}>Ajouter releve</button>
+                    {!hasHives && (
+                        <p className="muted">
+                            Aucune ruche disponible pour ce rucher. Cree une ruche ou change de rucher.
+                        </p>
+                    )}
+                    <button className="btn btn-primary" type="submit" disabled={busy || !hasHives}>Ajouter releve</button>
                 </form>
             </article>
 
-            <article className="panel">
-                <h2>Derniers releves</h2>
-                <div className="list-shell">
-                    {readings.map((reading) => (
-                        <div className="item-card" key={reading.id}>
-                            <div className="row between">
-                                <h3>{reading.hive?.name || `Ruche #${reading.hive_id}`}</h3>
-                                <span className="chip">{new Date(reading.recorded_at).toLocaleString()}</span>
+            {showHistory && (
+                <article className="panel">
+                    <h2>Derniers releves</h2>
+                    <div className="list-shell">
+                        {readings.map((reading) => (
+                            <div className="item-card activity-card" key={reading.id}>
+                                <div className="row between">
+                                    <h3>{reading.hive?.name || `Ruche #${reading.hive_id}`}</h3>
+                                    <span className="chip">{new Date(reading.recorded_at).toLocaleString()}</span>
+                                </div>
+                                <p className="muted small">
+                                    Rucher {reading.hive?.apiary_entity?.name || reading.hive?.apiary || 'non precise'}
+                                </p>
+                                <p className="muted">
+                                    poids {reading.weight_kg ?? '-'} kg | temperature {reading.temperature_c ?? '-'} C |
+                                    humidite {reading.humidity_percent ?? '-'}% | activite {reading.activity_index ?? '-'}
+                                </p>
                             </div>
-                            <p className="muted">
-                                poids {reading.weight_kg ?? '-'} kg | temperature {reading.temperature_c ?? '-'} C |
-                                humidite {reading.humidity_percent ?? '-'}% | activite {reading.activity_index ?? '-'}
-                            </p>
-                        </div>
-                    ))}
-                    {readings.length === 0 && <p className="muted">Aucun releve enregistre.</p>}
-                </div>
-            </article>
+                        ))}
+                        {readings.length === 0 && <p className="muted">Aucun releve enregistre.</p>}
+                    </div>
+                </article>
+            )}
         </section>
     );
 }

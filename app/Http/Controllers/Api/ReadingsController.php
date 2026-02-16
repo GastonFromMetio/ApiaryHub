@@ -14,11 +14,28 @@ class ReadingsController extends Controller
     public function index(Request $request)
     {
         $query = Reading::query()
-            ->with('hive:id,name')
+            ->with([
+                'hive:id,name,apiary_id,apiary',
+                'hive.apiaryEntity:id,name',
+            ])
             ->whereHas('hive', function ($hiveQuery) use ($request) {
                 $hiveQuery->where('user_id', $request->user()->id);
             })
             ->orderByDesc('recorded_at');
+
+        if ($request->filled('apiary_id')) {
+            $apiaryId = (int) $request->query('apiary_id');
+
+            abort_if(
+                ! $request->user()->apiaries()->whereKey($apiaryId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'You do not have access to this apiary.'
+            );
+
+            $query->whereHas('hive', function ($hiveQuery) use ($apiaryId) {
+                $hiveQuery->where('apiary_id', $apiaryId);
+            });
+        }
 
         if ($request->filled('hive_id')) {
             $hiveId = (int) $request->query('hive_id');
@@ -39,7 +56,10 @@ class ReadingsController extends Controller
     {
         $reading = Reading::create($request->validated());
 
-        return response()->json($reading->load('hive:id,name'), Response::HTTP_CREATED);
+        return response()->json($reading->load([
+            'hive:id,name,apiary_id,apiary',
+            'hive.apiaryEntity:id,name',
+        ]), Response::HTTP_CREATED);
     }
 
     public function update(UpdateReadingRequest $request, Reading $reading)
@@ -47,7 +67,10 @@ class ReadingsController extends Controller
         $this->abortIfNotOwner($request, $reading);
         $reading->update($request->validated());
 
-        return response()->json($reading->fresh()->load('hive:id,name'));
+        return response()->json($reading->fresh()->load([
+            'hive:id,name,apiary_id,apiary',
+            'hive.apiaryEntity:id,name',
+        ]));
     }
 
     public function destroy(Request $request, Reading $reading)

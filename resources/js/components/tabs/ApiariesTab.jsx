@@ -1,3 +1,34 @@
+import { useMemo } from 'react';
+import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
+
+function ApiaryLocationEvents({ onSelect }) {
+    useMapEvents({
+        click: (event) => {
+            onSelect(event.latlng.lat, event.latlng.lng);
+        },
+    });
+
+    return null;
+}
+
+function toPosition(latitude, longitude) {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (
+        Number.isNaN(lat)
+        || Number.isNaN(lon)
+        || lat < -90
+        || lat > 90
+        || lon < -180
+        || lon > 180
+    ) {
+        return null;
+    }
+
+    return [lat, lon];
+}
+
 export function ApiariesTab({
     apiaries,
     apiaryForm,
@@ -11,7 +42,24 @@ export function ApiariesTab({
     setEditingApiaryId,
     deleteApiary,
     busy,
+    userLocation,
+    mapCenter,
+    selectApiaryLocation,
+    clearApiaryLocation,
+    selectEditingApiaryLocation,
+    clearEditingApiaryLocation,
 }) {
+    const selectedApiaryPosition = useMemo(
+        () => toPosition(apiaryForm.latitude, apiaryForm.longitude),
+        [apiaryForm.latitude, apiaryForm.longitude]
+    );
+    const editingApiaryPosition = useMemo(
+        () => toPosition(editingApiaryForm.latitude, editingApiaryForm.longitude),
+        [editingApiaryForm.latitude, editingApiaryForm.longitude]
+    );
+    const createMapCenter = userLocation || selectedApiaryPosition || mapCenter;
+    const editMapCenter = editingApiaryPosition || userLocation || mapCenter;
+
     return (
         <section className="content-grid two-columns">
             <article className="panel">
@@ -26,7 +74,7 @@ export function ApiariesTab({
                         />
                     </label>
                     <label>
-                        Latitude (optionnel)
+                        Latitude
                         <input
                             type="number"
                             step="0.000001"
@@ -35,7 +83,7 @@ export function ApiariesTab({
                         />
                     </label>
                     <label>
-                        Longitude (optionnel)
+                        Longitude
                         <input
                             type="number"
                             step="0.000001"
@@ -43,6 +91,53 @@ export function ApiariesTab({
                             onChange={(event) => setApiaryForm({ ...apiaryForm, longitude: event.target.value })}
                         />
                     </label>
+                    <div className="full map-picker-field">
+                        <div className="row between">
+                            <div>
+                                <p className="field-title">Position du rucher</p>
+                                <p className="muted small">Clique sur la carte pour placer le rucher.</p>
+                            </div>
+                            <div className="row actions">
+                                {userLocation && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-soft"
+                                        onClick={() => selectApiaryLocation(userLocation[0], userLocation[1])}
+                                    >
+                                        Utiliser ma position
+                                    </button>
+                                )}
+                                <button type="button" className="btn btn-soft" onClick={clearApiaryLocation}>
+                                    Effacer
+                                </button>
+                            </div>
+                        </div>
+                        <MapContainer
+                            key={`create-apiary-map-${createMapCenter[0]}-${createMapCenter[1]}-${apiaries.length}`}
+                            center={createMapCenter}
+                            zoom={selectedApiaryPosition ? 10 : 7}
+                            scrollWheelZoom
+                            className="map-picker-canvas"
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            {apiaries
+                                .filter((apiary) => toPosition(apiary.latitude, apiary.longitude))
+                                .map((apiary) => (
+                                    <Marker key={`apiary-point-${apiary.id}`} position={[Number(apiary.latitude), Number(apiary.longitude)]}>
+                                        <Popup>{apiary.name}</Popup>
+                                    </Marker>
+                                ))}
+                            {selectedApiaryPosition && (
+                                <Marker position={selectedApiaryPosition}>
+                                    <Popup>Nouveau rucher</Popup>
+                                </Marker>
+                            )}
+                            <ApiaryLocationEvents onSelect={selectApiaryLocation} />
+                        </MapContainer>
+                    </div>
                     <label className="full">
                         Notes
                         <textarea
@@ -90,6 +185,43 @@ export function ApiariesTab({
                                                 onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, longitude: event.target.value })}
                                             />
                                         </label>
+                                        <div className="full map-picker-field">
+                                            <div className="row between">
+                                                <p className="field-title">Ajuster la localisation</p>
+                                                <div className="row actions">
+                                                    {userLocation && (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-soft"
+                                                            onClick={() => selectEditingApiaryLocation(userLocation[0], userLocation[1])}
+                                                        >
+                                                            Utiliser ma position
+                                                        </button>
+                                                    )}
+                                                    <button type="button" className="btn btn-soft" onClick={clearEditingApiaryLocation}>
+                                                        Effacer
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <MapContainer
+                                                key={`edit-apiary-map-${editMapCenter[0]}-${editMapCenter[1]}-${apiary.id}`}
+                                                center={editMapCenter}
+                                                zoom={editingApiaryPosition ? 10 : 7}
+                                                scrollWheelZoom
+                                                className="map-picker-canvas"
+                                            >
+                                                <TileLayer
+                                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                />
+                                                {editingApiaryPosition && (
+                                                    <Marker position={editingApiaryPosition}>
+                                                        <Popup>{editingApiaryForm.name || 'Rucher en edition'}</Popup>
+                                                    </Marker>
+                                                )}
+                                                <ApiaryLocationEvents onSelect={selectEditingApiaryLocation} />
+                                            </MapContainer>
+                                        </div>
                                         <label className="full">
                                             Notes
                                             <textarea
@@ -114,8 +246,8 @@ export function ApiariesTab({
                                         </p>
                                         {apiary.notes && <p>{apiary.notes}</p>}
                                         <div className="row actions">
-                                            <button type="button" className="btn" onClick={() => startEditApiary(apiary)}>Edit</button>
-                                            <button type="button" className="btn btn-danger" onClick={() => deleteApiary(apiary.id)} disabled={busy}>Delete</button>
+                                            <button type="button" className="btn" onClick={() => startEditApiary(apiary)}>Editer</button>
+                                            <button type="button" className="btn btn-danger" onClick={() => deleteApiary(apiary.id)} disabled={busy}>Supprimer</button>
                                         </div>
                                     </>
                                 )}

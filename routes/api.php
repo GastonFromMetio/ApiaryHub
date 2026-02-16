@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActionsController;
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ApiariesController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HivesController;
@@ -19,6 +20,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::put('/account', [AccountController::class, 'update']);
+    Route::delete('/account', [AccountController::class, 'destroy']);
 
     Route::get('/hives', [HivesController::class, 'index']);
     Route::post('/hives', [HivesController::class, 'store']);

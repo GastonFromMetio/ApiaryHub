@@ -1,4 +1,4 @@
-# Apiarihub (projet Web Services) — Plan de mise en route + roadmap
+# Apiaryhub (projet Web Services) — Plan de mise en route + roadmap
 
 > Objectif: livrer une application **Laravel (API)** + **Front (React ou Blade/Livewire)** respectant l’énoncé:  
 > - **REST** avec **GET/POST/PUT/DELETE** sur **≥ 3 controllers** (≥ 12 endpoints)  
@@ -48,7 +48,7 @@ Chaque controller expose:
 
 ### Étape A — Bootstrapping
 1. Créer repo Git + règles (branch main + PR + conventions de commit)
-2. `laravel new apiarihub-api`
+2. `laravel new apiaryhub-api`
 3. Config `.env`, DB, migrations de base
 4. Installer JWT (ou Sanctum) + routes `auth/login`, `auth/register`
 

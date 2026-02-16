@@ -41,7 +41,8 @@ class HivesController extends Controller
     /// Store a newly created resource in storage.
     public function store(StoreHiveRequest $request)
     {
-        $hive = $request->user()->hives()->create($request->validated());
+        $payload = $this->enrichPayloadFromApiary($request, $request->validated());
+        $hive = $request->user()->hives()->create($payload);
 
         return response()->json($hive->load('apiaryEntity:id,name'), Response::HTTP_CREATED);
     }
@@ -50,7 +51,8 @@ class HivesController extends Controller
     public function update(UpdateHiveRequest $request, Hive $hive)
     {
         $this->abortIfNotOwner($request, $hive);
-        $hive->update($request->validated());
+        $payload = $this->enrichPayloadFromApiary($request, $request->validated());
+        $hive->update($payload);
 
         return response()->json($hive->fresh()->load('apiaryEntity:id,name'));
     }
@@ -102,5 +104,33 @@ class HivesController extends Controller
             Response::HTTP_FORBIDDEN,
             'You do not have access to this hive.'
         );
+    }
+
+    private function enrichPayloadFromApiary(Request $request, array $payload): array
+    {
+        if (! array_key_exists('apiary_id', $payload)) {
+            return $payload;
+        }
+
+        $apiary = $request->user()
+            ->apiaries()
+            ->select('name', 'latitude', 'longitude')
+            ->find($payload['apiary_id']);
+
+        if (! $apiary) {
+            return $payload;
+        }
+
+        $payload['apiary'] = $apiary->name;
+
+        if (! array_key_exists('latitude', $payload) || $payload['latitude'] === null) {
+            $payload['latitude'] = $apiary->latitude;
+        }
+
+        if (! array_key_exists('longitude', $payload) || $payload['longitude'] === null) {
+            $payload['longitude'] = $apiary->longitude;
+        }
+
+        return $payload;
     }
 }

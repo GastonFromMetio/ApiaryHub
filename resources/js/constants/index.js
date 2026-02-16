@@ -4,18 +4,15 @@ export const FALLBACK_CENTER = [46.603354, 1.888334];
 export const TABS = [
     { id: 'overview', label: "Vue d'ensemble" },
     { id: 'apiaries', label: 'Ruchers' },
-    { id: 'map', label: 'Carte' },
     { id: 'hives', label: 'Ruches' },
     { id: 'readings', label: 'Releves' },
     { id: 'actions', label: 'Interventions' },
+    { id: 'account', label: 'Compte' },
 ];
 
 export const initialHiveForm = {
     name: '',
     apiary_id: '',
-    hive_count: '1',
-    latitude: '',
-    longitude: '',
     status: 'active',
     notes: '',
 };

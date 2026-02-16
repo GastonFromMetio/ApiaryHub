@@ -1,3 +1,9 @@
+const AUTH_FEATURES = [
+    'Ruchers geolocalises et suivi multi-sites',
+    'Historique capteurs et interventions',
+    'Meteo contextuelle par zone',
+];
+
 export function AuthPanel({
     authMode,
     setAuthMode,
@@ -8,30 +14,49 @@ export function AuthPanel({
 }) {
     return (
         <div className="auth-shell">
-            <div className="hero copy-block panel gradient-panel">
-                <p className="kicker">Apiarihub Platform</p>
-                <h1>Gestion apicole moderne, connectee en temps reel.</h1>
-                <p>
-                    Connecte-toi pour piloter tes ruches, suivre les releves capteurs,
-                    historiser les interventions et recuperer la meteo de chaque emplacement.
+            <section className="panel auth-hero gradient-panel">
+                <p className="kicker">Apiaryhub Platform</p>
+                <h1>Supervise ton activite apicole avec precision.</h1>
+                <p className="auth-hero-copy">
+                    Centralise tes ruchers, localise chaque ruche et pilote les operations terrain
+                    depuis une interface claire, rapide et orientee donnees.
                 </p>
-            </div>
+                <div className="auth-feature-grid">
+                    {AUTH_FEATURES.map((feature) => (
+                        <article className="auth-feature-card" key={feature}>
+                            <span className="auth-feature-dot" aria-hidden="true" />
+                            <p>{feature}</p>
+                        </article>
+                    ))}
+                </div>
+            </section>
 
-            <form className="panel form-card" onSubmit={submitAuth}>
-                <div className="form-head">
+            <form className="panel auth-card" onSubmit={submitAuth}>
+                <header className="auth-card-header">
+                    <h2>{authMode === 'login' ? 'Connexion securisee' : 'Creation de compte'}</h2>
+                    <p className="muted small">
+                        {authMode === 'login'
+                            ? 'Reprends ton suivi des ruchers en quelques secondes.'
+                            : 'Demarre ta gestion apicole connectee.'}
+                    </p>
+                </header>
+
+                <div className="form-head auth-switch">
                     <button
                         type="button"
                         className={authMode === 'login' ? 'seg active' : 'seg'}
                         onClick={() => setAuthMode('login')}
+                        aria-pressed={authMode === 'login'}
                     >
-                        Login
+                        Connexion
                     </button>
                     <button
                         type="button"
                         className={authMode === 'register' ? 'seg active' : 'seg'}
                         onClick={() => setAuthMode('register')}
+                        aria-pressed={authMode === 'register'}
                     >
-                        Register
+                        Inscription
                     </button>
                 </div>
 
@@ -42,6 +67,7 @@ export function AuthPanel({
                             type="text"
                             value={authForm.name}
                             onChange={(event) => setAuthForm({ ...authForm, name: event.target.value })}
+                            autoComplete="name"
                             required
                         />
                     </label>
@@ -53,6 +79,7 @@ export function AuthPanel({
                         type="email"
                         value={authForm.email}
                         onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                        autoComplete="email"
                         required
                     />
                 </label>
@@ -63,26 +90,28 @@ export function AuthPanel({
                         type="password"
                         value={authForm.password}
                         onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
+                        autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                         required
                     />
                 </label>
 
                 {authMode === 'register' && (
                     <label>
-                        Confirmation
+                        Confirmation mot de passe
                         <input
                             type="password"
                             value={authForm.password_confirmation}
                             onChange={(event) => setAuthForm({ ...authForm, password_confirmation: event.target.value })}
+                            autoComplete="new-password"
                             required
                         />
                     </label>
                 )}
 
-                <button className="btn btn-primary" type="submit" disabled={busy}>
-                    {authMode === 'login' ? 'Se connecter' : 'Creer un compte'}
+                <button className="btn btn-primary auth-submit" type="submit" disabled={busy}>
+                    {authMode === 'login' ? 'Se connecter' : 'Creer mon compte'}
                 </button>
-                <p className="muted small">Compte seed: demo@apiarihub.local / password123</p>
+                <p className="muted small">Compte demo: demo@apiaryhub.local / password123</p>
             </form>
         </div>
     );

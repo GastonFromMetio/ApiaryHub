@@ -15,11 +15,28 @@ class ActionsController extends Controller
     public function index(Request $request)
     {
         $query = HiveAction::query()
-            ->with('hive:id,name')
+            ->with([
+                'hive:id,name,apiary_id,apiary',
+                'hive.apiaryEntity:id,name',
+            ])
             ->whereHas('hive', function ($hiveQuery) use ($request) {
                 $hiveQuery->where('user_id', $request->user()->id);
             })
             ->orderByDesc('performed_at');
+
+        if ($request->filled('apiary_id')) {
+            $apiaryId = (int) $request->query('apiary_id');
+
+            abort_if(
+                ! $request->user()->apiaries()->whereKey($apiaryId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'You do not have access to this apiary.'
+            );
+
+            $query->whereHas('hive', function ($hiveQuery) use ($apiaryId) {
+                $hiveQuery->where('apiary_id', $apiaryId);
+            });
+        }
 
         if ($request->filled('hive_id')) {
             $hiveId = (int) $request->query('hive_id');
@@ -41,7 +58,10 @@ class ActionsController extends Controller
     {
         $action = HiveAction::create($request->validated());
 
-        return response()->json($action->load('hive:id,name'), Response::HTTP_CREATED);
+        return response()->json($action->load([
+            'hive:id,name,apiary_id,apiary',
+            'hive.apiaryEntity:id,name',
+        ]), Response::HTTP_CREATED);
     }
 
     /// Update the specified resource in storage.
@@ -50,7 +70,10 @@ class ActionsController extends Controller
         $this->abortIfNotOwner($request, $action);
         $action->update($request->validated());
 
-        return response()->json($action->fresh()->load('hive:id,name'));
+        return response()->json($action->fresh()->load([
+            'hive:id,name,apiary_id,apiary',
+            'hive.apiaryEntity:id,name',
+        ]));
     }
 
     /// Remove the specified resource from storage.

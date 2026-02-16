@@ -22,7 +22,10 @@ export async function apiRequest(path, { method = 'GET', token, body } = {}) {
 
     if (!response.ok) {
         const validationErrors = payload?.errors ? Object.values(payload.errors).flat().join(' ') : '';
-        throw new Error(validationErrors || payload?.message || 'Request failed.');
+        const error = new Error(validationErrors || payload?.message || 'Request failed.');
+        error.status = response.status;
+        error.payload = payload;
+        throw error;
     }
 
     return payload;

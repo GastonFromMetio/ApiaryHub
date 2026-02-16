@@ -1,6 +1,6 @@
-# Apiarihub V1 (Laravel API + React)
+# Apiaryhub V1 (Laravel API + React)
 
-Apiarihub V1 inclut:
+Apiaryhub V1 inclut:
 - API REST Laravel avec auth Sanctum
 - Gestion des ruchers (`apiaries`) et des ruches (`hives`)
 - Releves capteurs et interventions
@@ -18,13 +18,13 @@ docker compose up --build -d
 Puis ouvrir [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 ## Credentials demo
-- email: `demo@apiarihub.local`
+- email: `demo@apiaryhub.local`
 - password: `password123`
 
 ## Services Docker
-- `apiarihub-app` -> Laravel + frontend React, expose `8000`
-- `apiarihub-mysql` -> MySQL 8.4, expose `3306`
-- `apiarihub-redis` -> Redis 7, expose `6379`
+- `apiaryhub-app` -> Laravel + frontend React, expose `8000`
+- `apiaryhub-mysql` -> MySQL 8.4, expose `3306`
+- `apiaryhub-redis` -> Redis 7, expose `6379`
 
 ## Endpoints API principaux
 - `POST /api/auth/register`

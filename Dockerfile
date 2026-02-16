@@ -37,9 +37,9 @@ RUN cp .env.example .env \
     && chown -R www-data:www-data storage bootstrap/cache
 
 COPY --from=frontend /app/public/build ./public/build
-COPY docker/entrypoint.sh /usr/local/bin/apiarihub-entrypoint
-RUN chmod +x /usr/local/bin/apiarihub-entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/apiaryhub-entrypoint
+RUN chmod +x /usr/local/bin/apiaryhub-entrypoint
 
 EXPOSE 8000
 
-ENTRYPOINT ["apiarihub-entrypoint"]
+ENTRYPOINT ["apiaryhub-entrypoint"]

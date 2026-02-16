@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: apiarihub-app
+    container_name: apiaryhub-app
     restart: unless-stopped
     depends_on:
       mysql:
@@ -18,9 +18,9 @@ services:
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: apiarihub
-      DB_USERNAME: apiarihub
-      DB_PASSWORD: apiarihub
+      DB_DATABASE: apiaryhub
+      DB_USERNAME: apiaryhub
+      DB_PASSWORD: apiaryhub
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
@@ -32,12 +32,12 @@ services:
 
   mysql:
     image: mysql:8.4
-    container_name: apiarihub-mysql
+    container_name: apiaryhub-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: apiarihub
-      MYSQL_USER: apiarihub
-      MYSQL_PASSWORD: apiarihub
+      MYSQL_DATABASE: apiaryhub
+      MYSQL_USER: apiaryhub
+      MYSQL_PASSWORD: apiaryhub
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
@@ -51,7 +51,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: apiarihub-redis
+    container_name: apiaryhub-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:

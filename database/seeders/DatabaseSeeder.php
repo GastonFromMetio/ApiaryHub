@@ -21,52 +21,55 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $user = User::updateOrCreate([
-            'email' => 'demo@apiarihub.local',
+            'email' => 'demo@apiaryhub.local',
         ], [
-            'name' => 'Apiarihub Demo',
+            'name' => 'Apiaryhub Demo',
             'password' => 'password123',
         ]);
 
-        $apiaryNorth = Apiary::updateOrCreate([
+        // Keep demo seed deterministic: reset previous demo data.
+        $user->hives()->delete();
+        $user->apiaries()->delete();
+
+        $apiaryMain = Apiary::create([
             'user_id' => $user->id,
-            'name' => 'Rucher Nord',
-        ], [
-            'latitude' => 43.604652,
-            'longitude' => 1.444209,
+            'name' => 'Le Rucher Des Beestioles',
+            'latitude' => 49.091567,
+            'longitude' => 3.287739,
             'notes' => 'Site principal.',
         ]);
 
-        $apiarySouth = Apiary::updateOrCreate([
+        $hiveA = Hive::create([
             'user_id' => $user->id,
-            'name' => 'Rucher Sud',
-        ], [
-            'latitude' => 43.296482,
-            'longitude' => 5.369780,
-            'notes' => 'Site secondaire.',
-        ]);
-
-        $hiveA = Hive::updateOrCreate([
-            'user_id' => $user->id,
+            'apiary_id' => $apiaryMain->id,
+            'apiary' => $apiaryMain->name,
             'name' => 'Ruche Alpha',
-        ], [
-            'apiary_id' => $apiaryNorth->id,
-            'apiary' => $apiaryNorth->name,
-            'latitude' => 43.604652,
-            'longitude' => 1.444209,
+            'latitude' => 49.091567,
+            'longitude' => 3.287739,
             'status' => 'active',
             'notes' => 'Colonie forte, surveillance varroa.',
         ]);
 
-        $hiveB = Hive::updateOrCreate([
+        $hiveB = Hive::create([
             'user_id' => $user->id,
+            'apiary_id' => $apiaryMain->id,
+            'apiary' => $apiaryMain->name,
             'name' => 'Ruche Beta',
-        ], [
-            'apiary_id' => $apiarySouth->id,
-            'apiary' => $apiarySouth->name,
-            'latitude' => 43.296482,
-            'longitude' => 5.369780,
+            'latitude' => 49.091607,
+            'longitude' => 3.287779,
             'status' => 'maintenance',
-            'notes' => 'Essaim récent, nourrissement en cours.',
+            'notes' => 'Essaim recent, nourrissement en cours.',
+        ]);
+
+        $hiveC = Hive::create([
+            'user_id' => $user->id,
+            'apiary_id' => $apiaryMain->id,
+            'apiary' => $apiaryMain->name,
+            'name' => 'Ruche Gamma',
+            'latitude' => 49.091527,
+            'longitude' => 3.287699,
+            'status' => 'active',
+            'notes' => 'Nouvelle colonie en observation.',
         ]);
 
         $readings = [
@@ -87,7 +90,7 @@ class DatabaseSeeder extends Seeder
                 'recorded_at' => CarbonImmutable::parse('2026-02-09 08:00:00', 'UTC'),
             ],
             [
-                'hive_id' => $hiveB->id,
+                'hive_id' => $hiveC->id,
                 'weight_kg' => 24.30,
                 'temperature_c' => 29.40,
                 'humidity_percent' => 66.00,
@@ -115,6 +118,12 @@ class DatabaseSeeder extends Seeder
                 'type' => 'nourrissement',
                 'description' => 'Sirop 50/50 ajoute en soiree.',
                 'performed_at' => CarbonImmutable::parse('2026-02-08 18:00:00', 'UTC'),
+            ],
+            [
+                'hive_id' => $hiveC->id,
+                'type' => 'controle',
+                'description' => 'Verification des cadres de rive.',
+                'performed_at' => CarbonImmutable::parse('2026-02-09 11:30:00', 'UTC'),
             ],
         ];
 

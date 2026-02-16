@@ -2,6 +2,7 @@ import { HIVE_STATUSES } from '../../constants';
 
 export function HivesList({
     hives,
+    totalHives,
     apiaries,
     weatherByHive,
     editingHiveId,
@@ -13,17 +14,58 @@ export function HivesList({
     fetchWeather,
     deleteHive,
     busy,
+    handleEditingHiveApiaryChange,
+    selectedApiaryFilter,
+    setSelectedApiaryFilter,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
 }) {
     return (
-        <article className="panel">
-            <h2>Ruches</h2>
-            <div className="list-shell">
+        <article className="panel hives-list-card">
+            <div className="hive-list-head">
+                <div>
+                    <h2>Ruches</h2>
+                    <p className="muted small">{hives.length} visible(s) / {totalHives} total</p>
+                </div>
+                <div className="hive-toolbar">
+                    <label className="hive-toolbar-field">
+                        Rucher
+                        <select value={selectedApiaryFilter} onChange={(event) => setSelectedApiaryFilter(event.target.value)}>
+                            <option value="all">Tous</option>
+                            {apiaries.map((apiary) => (
+                                <option key={apiary.id} value={String(apiary.id)}>{apiary.name}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="hive-toolbar-field">
+                        Statut
+                        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                            <option value="all">Tous</option>
+                            {HIVE_STATUSES.map((status) => (
+                                <option key={status} value={status}>{status}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="hive-toolbar-field">
+                        Recherche
+                        <input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Nom de ruche"
+                        />
+                    </label>
+                </div>
+            </div>
+
+            <div className="list-shell hives-list-shell">
                 {hives.map((hive) => {
                     const weather = weatherByHive[hive.id];
                     const isEditing = editingHiveId === hive.id;
 
                     return (
-                        <div className="item-card" key={hive.id}>
+                        <div className="item-card hive-item" key={hive.id}>
                             {isEditing ? (
                                 <div className="form-grid compact">
                                     <label>
@@ -44,35 +86,17 @@ export function HivesList({
                                             ))}
                                         </select>
                                     </label>
-                                    <label>
+                                    <label className="full">
                                         Rucher
                                         <select
                                             value={editingHiveForm.apiary_id}
-                                            onChange={(event) => setEditingHiveForm({ ...editingHiveForm, apiary_id: event.target.value })}
+                                            onChange={(event) => handleEditingHiveApiaryChange(event.target.value)}
                                         >
                                             <option value="">Choisir</option>
                                             {apiaries.map((apiary) => (
                                                 <option key={apiary.id} value={apiary.id}>{apiary.name}</option>
                                             ))}
                                         </select>
-                                    </label>
-                                    <label>
-                                        Latitude
-                                        <input
-                                            type="number"
-                                            step="0.000001"
-                                            value={editingHiveForm.latitude}
-                                            onChange={(event) => setEditingHiveForm({ ...editingHiveForm, latitude: event.target.value })}
-                                        />
-                                    </label>
-                                    <label>
-                                        Longitude
-                                        <input
-                                            type="number"
-                                            step="0.000001"
-                                            value={editingHiveForm.longitude}
-                                            onChange={(event) => setEditingHiveForm({ ...editingHiveForm, longitude: event.target.value })}
-                                        />
                                     </label>
                                     <label className="full">
                                         Notes
@@ -90,11 +114,12 @@ export function HivesList({
                             ) : (
                                 <>
                                     <div className="row between">
-                                        <h3>{hive.name}</h3>
+                                        <div>
+                                            <h3>{hive.name}</h3>
+                                            <p className="muted small">{hive.apiary_entity?.name || hive.apiary || 'Rucher non precise'}</p>
+                                        </div>
                                         <span className="chip">{hive.status}</span>
                                     </div>
-                                    <p className="muted">{hive.apiary_entity?.name || hive.apiary || 'Rucher non precise'}</p>
-                                    <p className="muted small">Lat {hive.latitude ?? '-'} / Lon {hive.longitude ?? '-'}</p>
                                     {hive.notes && <p>{hive.notes}</p>}
                                     <div className="row actions">
                                         <button type="button" className="btn" onClick={() => startEditHive(hive)}>Edit</button>
@@ -117,7 +142,7 @@ export function HivesList({
                         </div>
                     );
                 })}
-                {hives.length === 0 && <p className="muted">Aucune ruche pour le moment.</p>}
+                {hives.length === 0 && <p className="muted">Aucune ruche ne correspond aux filtres.</p>}
             </div>
         </article>
     );

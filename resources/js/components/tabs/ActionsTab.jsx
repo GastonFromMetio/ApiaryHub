@@ -2,15 +2,41 @@ export function ActionsTab({
     createAction,
     actionForm,
     setActionForm,
+    apiaries,
+    selectedApiaryFilter,
+    setSelectedApiaryFilter,
     hives,
     actions,
     busy,
+    showHistory = true,
+    onBack = null,
 }) {
+    const hasHives = hives.length > 0;
+
     return (
-        <section className="content-grid two-columns">
+        <section className={showHistory ? 'content-grid two-columns' : 'content-grid'}>
             <article className="panel">
-                <h2>Ajouter une intervention</h2>
+                <div className="row between form-title-row">
+                    <h2>Ajouter une intervention</h2>
+                    {onBack && (
+                        <button type="button" className="btn" onClick={onBack}>
+                            Retour actions rapides
+                        </button>
+                    )}
+                </div>
                 <form className="form-grid" onSubmit={createAction}>
+                    <label>
+                        Rucher
+                        <select
+                            value={selectedApiaryFilter}
+                            onChange={(event) => setSelectedApiaryFilter(event.target.value)}
+                        >
+                            <option value="all">Tous les ruchers</option>
+                            {apiaries.map((apiary) => (
+                                <option key={apiary.id} value={apiary.id}>{apiary.name}</option>
+                            ))}
+                        </select>
+                    </label>
                     <label>
                         Ruche
                         <select
@@ -50,26 +76,36 @@ export function ActionsTab({
                             required
                         />
                     </label>
-                    <button className="btn btn-primary" type="submit" disabled={busy}>Ajouter intervention</button>
+                    {!hasHives && (
+                        <p className="muted">
+                            Aucune ruche disponible pour ce rucher. Cree une ruche ou change de rucher.
+                        </p>
+                    )}
+                    <button className="btn btn-primary" type="submit" disabled={busy || !hasHives}>Ajouter intervention</button>
                 </form>
             </article>
 
-            <article className="panel">
-                <h2>Dernieres interventions</h2>
-                <div className="list-shell">
-                    {actions.map((action) => (
-                        <div className="item-card" key={action.id}>
-                            <div className="row between">
-                                <h3>{action.type}</h3>
-                                <span className="chip">{new Date(action.performed_at).toLocaleString()}</span>
+            {showHistory && (
+                <article className="panel">
+                    <h2>Dernieres interventions</h2>
+                    <div className="list-shell">
+                        {actions.map((action) => (
+                            <div className="item-card activity-card" key={action.id}>
+                                <div className="row between">
+                                    <h3>{action.type}</h3>
+                                    <span className="chip">{new Date(action.performed_at).toLocaleString()}</span>
+                                </div>
+                                <p className="muted">{action.hive?.name || `Ruche #${action.hive_id}`}</p>
+                                <p className="muted small">
+                                    Rucher {action.hive?.apiary_entity?.name || action.hive?.apiary || 'non precise'}
+                                </p>
+                                {action.description && <p>{action.description}</p>}
                             </div>
-                            <p className="muted">{action.hive?.name || `Ruche #${action.hive_id}`}</p>
-                            {action.description && <p>{action.description}</p>}
-                        </div>
-                    ))}
-                    {actions.length === 0 && <p className="muted">Aucune intervention enregistree.</p>}
-                </div>
-            </article>
+                        ))}
+                        {actions.length === 0 && <p className="muted">Aucune intervention enregistree.</p>}
+                    </div>
+                </article>
+            )}
         </section>
     );
 }

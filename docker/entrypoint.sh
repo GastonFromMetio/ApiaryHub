@@ -46,9 +46,9 @@ echo "Waiting for database at ${DB_HOST:-mysql}:${DB_PORT:-3306}..."
 until php -r '
 $host = getenv("DB_HOST") ?: "mysql";
 $port = (int) (getenv("DB_PORT") ?: 3306);
-$db = getenv("DB_DATABASE") ?: "apiarihub";
-$user = getenv("DB_USERNAME") ?: "apiarihub";
-$pass = getenv("DB_PASSWORD") ?: "apiarihub";
+$db = getenv("DB_DATABASE") ?: "apiaryhub";
+$user = getenv("DB_USERNAME") ?: "apiaryhub";
+$pass = getenv("DB_PASSWORD") ?: "apiaryhub";
 try {
     new PDO("mysql:host={$host};port={$port};dbname={$db}", $user, $pass, [PDO::ATTR_TIMEOUT => 2]);
     exit(0);
