@@ -11,40 +11,44 @@ services:
       redis:
         condition: service_healthy
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
-      APP_URL: http://localhost:8000
-      APP_AUTO_SEED: "true"
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_DATABASE: apiaryhub
-      DB_USERNAME: apiaryhub
-      DB_PASSWORD: apiaryhub
-      CACHE_STORE: redis
-      SESSION_DRIVER: redis
-      QUEUE_CONNECTION: redis
-      REDIS_CLIENT: phpredis
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_URL: ${APP_URL:-https://app.apiaryhub.fr}
+      APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-app.apiaryhub.fr}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-app.apiaryhub.fr}
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-apiaryhub}
+      DB_USERNAME: ${DB_USERNAME:-apiaryhub}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
+      CACHE_STORE: ${CACHE_STORE:-redis}
+      SESSION_DRIVER: ${SESSION_DRIVER:-redis}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+      REDIS_CLIENT: ${REDIS_CLIENT:-phpredis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
 
   mysql:
     image: mysql:8.4
     container_name: apiaryhub-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: apiaryhub
-      MYSQL_USER: apiaryhub
-      MYSQL_PASSWORD: apiaryhub
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-apiaryhub}
+      MYSQL_USER: ${MYSQL_USER:-apiaryhub}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root}
     ports:
-      - "3306:3306"
+      - "${MYSQL_BIND:-127.0.0.1}:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -55,7 +59,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_BIND:-127.0.0.1}:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
