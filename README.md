@@ -26,6 +26,20 @@ Puis ouvrir [http://127.0.0.1:8000](http://127.0.0.1:8000).
 - `apiaryhub-mysql` -> MySQL 8.4, expose `3306`
 - `apiaryhub-redis` -> Redis 7, expose `6379`
 
+## Nginx + Certbot (VPS Ubuntu)
+Un template Nginx est disponible ici:
+
+- `deploy/nginx/apiaryhub.conf`
+
+Etapes rapides cote serveur:
+
+```bash
+sudo cp deploy/nginx/apiaryhub.conf /etc/nginx/sites-available/apiaryhub
+sudo ln -s /etc/nginx/sites-available/apiaryhub /etc/nginx/sites-enabled/apiaryhub
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d apiaryhub.example.com -d www.apiaryhub.example.com --redirect
+```
+
 ## Endpoints API principaux
 - `POST /api/auth/register`
 - `POST /api/auth/login`
