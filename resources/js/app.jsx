@@ -29,6 +29,8 @@ const TOKEN_STORAGE_KEY = 'apiaryhub_token';
 const LEGACY_TOKEN_STORAGE_KEY = 'beewatch_token';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const MOBILE_ACTIONS_TAB = { id: 'mobile-actions', label: 'Actions rapides' };
+const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_complet.png';
+const BRAND_LOGO_MARK = '/branding/apiaryhub_logo_seul.png';
 
 function App() {
     const [token, setToken] = useState(
@@ -1017,7 +1019,7 @@ function App() {
     );
 
     const currentTabLabel = useMemo(
-        () => navigationTabs.find((tab) => tab.id === activeTab)?.label || TABS.find((tab) => tab.id === activeTab)?.label || 'Apiaryhub',
+        () => navigationTabs.find((tab) => tab.id === activeTab)?.label || TABS.find((tab) => tab.id === activeTab)?.label || 'ApiaryHub',
         [navigationTabs, activeTab]
     );
 
@@ -1198,7 +1200,11 @@ function App() {
                             <aside className={mobileMenuOpen ? 'sidebar panel open' : 'sidebar panel'}>
                                 <div className="sidebar-top">
                                     <div className="brand-block">
-                                        <p className="kicker">Apiaryhub</p>
+                                        <img
+                                            className="sidebar-logo-full"
+                                            src={BRAND_LOGO_FULL}
+                                            alt="ApiaryHub"
+                                        />
                                         <h2>{user?.name ?? 'apiculteur'}</h2>
                                     </div>
                                     <button
@@ -1263,7 +1269,14 @@ function App() {
                                 <div className="workspace-header-top">
                                     {isMobileViewport ? (
                                         <>
-                                            <p className="kicker">Apiaryhub Actions</p>
+                                            <div className="workspace-brand-mobile">
+                                                <img
+                                                    className="workspace-brand-mark"
+                                                    src={BRAND_LOGO_MARK}
+                                                    alt="ApiaryHub"
+                                                />
+                                                <p className="kicker">ApiaryHub Actions</p>
+                                            </div>
                                             {activeTab !== MOBILE_ACTIONS_TAB.id ? (
                                                 <button
                                                     type="button"
@@ -1299,7 +1312,11 @@ function App() {
                                             >
                                                 Menu
                                             </button>
-                                            <p className="kicker">Apiaryhub Dashboard</p>
+                                            <img
+                                                className="workspace-brand-logo"
+                                                src={BRAND_LOGO_FULL}
+                                                alt="ApiaryHub"
+                                            />
                                         </>
                                     )}
                                 </div>

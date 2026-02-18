@@ -203,6 +203,12 @@ p {
     z-index: 1;
 }
 
+.auth-brand-logo {
+    width: min(100%, 320px);
+    height: auto;
+    object-fit: contain;
+}
+
 .auth-hero-copy {
     max-width: 60ch;
     line-height: 1.45;
@@ -317,6 +323,16 @@ p {
     gap: 6px;
 }
 
+.brand-block h2 {
+    margin-bottom: 0;
+}
+
+.sidebar-logo-full {
+    width: min(100%, 190px);
+    height: auto;
+    object-fit: contain;
+}
+
 .mobile-menu-trigger {
     display: inline-flex;
     align-items: center;
@@ -425,6 +441,24 @@ p {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+}
+
+.workspace-brand-logo {
+    width: clamp(170px, 21vw, 250px);
+    height: auto;
+    object-fit: contain;
+}
+
+.workspace-brand-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-brand-mark {
+    width: 36px;
+    height: auto;
+    object-fit: contain;
 }
 
 .workspace-header > div p:last-child {

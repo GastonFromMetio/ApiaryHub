@@ -15,7 +15,12 @@ export function AuthPanel({
     return (
         <div className="auth-shell">
             <section className="panel auth-hero gradient-panel">
-                <p className="kicker">Apiaryhub Platform</p>
+                <img
+                    className="auth-brand-logo"
+                    src="/branding/apiaryhub_logo_complet.png"
+                    alt="ApiaryHub"
+                />
+                <p className="kicker">ApiaryHub Platform</p>
                 <h1>Supervise ton activite apicole avec precision.</h1>
                 <p className="auth-hero-copy">
                     Centralise tes ruchers, localise chaque ruche et pilote les operations terrain
