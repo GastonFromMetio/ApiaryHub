@@ -25,6 +25,15 @@ class DatabaseSeeder extends Seeder
         ], [
             'name' => 'Apiaryhub Demo',
             'password' => 'password123',
+            'is_admin' => false,
+        ]);
+
+        User::updateOrCreate([
+            'email' => 'gastonolonde@gmail.com',
+        ], [
+            'name' => 'ApiaryHub Admin',
+            'password' => 'password123',
+            'is_admin' => true,
         ]);
 
         // Keep demo seed deterministic: reset previous demo data.

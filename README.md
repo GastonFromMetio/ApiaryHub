@@ -24,6 +24,10 @@ Config Nginx locale (optionnelle):
 - email: `demo@apiaryhub.local`
 - password: `password123`
 
+## Credentials admin
+- email: `gastonolonde@gmail.com`
+- password: `password123`
+
 ## Services Docker
 - `apiaryhub-app` -> Laravel + frontend React, expose `8000`
 - `apiaryhub-mysql` -> MySQL 8.4
@@ -167,3 +171,4 @@ sudo certbot certificates
 - `GET /api/hives/{hive}/weather`
 - `GET|POST|PUT|DELETE /api/readings...`
 - `GET|POST|PUT|DELETE /api/actions...`
+- `GET /api/admin/dashboard` (admin uniquement)

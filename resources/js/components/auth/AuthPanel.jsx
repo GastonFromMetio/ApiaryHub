@@ -116,7 +116,7 @@ export function AuthPanel({
                 <button className="btn btn-primary auth-submit" type="submit" disabled={busy}>
                     {authMode === 'login' ? 'Se connecter' : 'Creer mon compte'}
                 </button>
-                <p className="muted small">Compte demo: demo@apiaryhub.local / password123</p>
+                <p className="muted small">Demo: demo@apiaryhub.local</p>
             </form>
         </div>
     );

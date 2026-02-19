@@ -19,6 +19,7 @@ import { ReadingsTab } from './components/tabs/ReadingsTab';
 import { ActionsTab } from './components/tabs/ActionsTab';
 import { AccountTab } from './components/tabs/AccountTab';
 import { QuickActionsTab } from './components/tabs/QuickActionsTab';
+import { AdminTab } from './components/tabs/AdminTab';
 import { apiRequest } from './lib/api';
 import { setupLeafletDefaultIcon } from './lib/leaflet';
 import { toDatetimeValue } from './utils/date';
@@ -27,10 +28,36 @@ import { parseNumber } from './utils/number';
 setupLeafletDefaultIcon();
 const TOKEN_STORAGE_KEY = 'apiaryhub_token';
 const LEGACY_TOKEN_STORAGE_KEY = 'beewatch_token';
+const ACTIVE_TAB_STORAGE_PREFIX = 'apiaryhub_active_tab_';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const MOBILE_ACTIONS_TAB = { id: 'mobile-actions', label: 'Actions rapides' };
+const ADMIN_TAB = { id: 'admin', label: 'Administration' };
+const ACCOUNT_TAB = { id: 'account', label: 'Compte' };
 const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_complet.png';
 const BRAND_LOGO_MARK = '/branding/apiaryhub_logo_seul.png';
+
+const getAllowedTabIds = (currentUser, isMobile) => {
+    if (currentUser?.is_admin) {
+        return [ADMIN_TAB.id, ACCOUNT_TAB.id];
+    }
+
+    const baseTabIds = TABS.map((tab) => tab.id);
+    return isMobile ? [MOBILE_ACTIONS_TAB.id, ...baseTabIds] : baseTabIds;
+};
+
+const resolveTabForUser = (currentUser, candidateTab, isMobile) => {
+    const allowedTabs = getAllowedTabIds(currentUser, isMobile);
+
+    if (candidateTab && allowedTabs.includes(candidateTab)) {
+        return candidateTab;
+    }
+
+    if (currentUser?.is_admin) {
+        return ADMIN_TAB.id;
+    }
+
+    return isMobile ? MOBILE_ACTIONS_TAB.id : 'overview';
+};
 
 function App() {
     const [token, setToken] = useState(
@@ -42,6 +69,9 @@ function App() {
     const [readings, setReadings] = useState([]);
     const [actions, setActions] = useState([]);
     const [weatherByHive, setWeatherByHive] = useState({});
+    const [adminDashboard, setAdminDashboard] = useState(null);
+    const [adminLoading, setAdminLoading] = useState(false);
+    const [selectedAdminApiaryFilter, setSelectedAdminApiaryFilter] = useState('all');
 
     const [authMode, setAuthMode] = useState('login');
     const [authForm, setAuthForm] = useState({
@@ -246,6 +276,20 @@ function App() {
         return `?apiary_id=${apiaryId}`;
     };
 
+    const buildAdminQuery = () => {
+        if (selectedAdminApiaryFilter === 'all') {
+            return '';
+        }
+
+        const apiaryId = Number(selectedAdminApiaryFilter);
+
+        if (!apiaryId || Number.isNaN(apiaryId)) {
+            return '';
+        }
+
+        return `?apiary_id=${apiaryId}`;
+    };
+
     const syncHiveSelection = (previous, availableHives) => {
         const selectedHiveId = String(previous.hive_id || '');
         const stillExists = availableHives.some((hive) => String(hive.id) === selectedHiveId);
@@ -295,6 +339,7 @@ function App() {
             setHives([]);
             setReadings([]);
             setActions([]);
+            setAdminDashboard(null);
             return;
         }
 
@@ -312,6 +357,14 @@ function App() {
                 setUser(me);
                 setApiaries(apiaryData);
                 setHives(hiveData);
+                setAdminDashboard(null);
+                const savedTab = localStorage.getItem(`${ACTIVE_TAB_STORAGE_PREFIX}${me.id}`);
+                setActiveTab(resolveTabForUser(me, savedTab, isMobileViewport));
+
+                if (me?.is_admin) {
+                    const adminData = await apiRequestWithSession(`/api/admin/dashboard${buildAdminQuery()}`, { token });
+                    setAdminDashboard(adminData);
+                }
 
                 if (!hiveForm.apiary_id && apiaryData[0]) {
                     setHiveForm((previous) => ({ ...previous, apiary_id: String(apiaryData[0].id) }));
@@ -448,19 +501,23 @@ function App() {
     }, [isMobileViewport]);
 
     useEffect(() => {
-        if (!token) {
+        if (!token || !user) {
             return;
         }
 
-        if (!isMobileViewport && activeTab === MOBILE_ACTIONS_TAB.id) {
-            setActiveTab('overview');
+        const resolvedTab = resolveTabForUser(user, activeTab, isMobileViewport);
+        if (resolvedTab !== activeTab) {
+            setActiveTab(resolvedTab);
+        }
+    }, [token, user, activeTab, isMobileViewport]);
+
+    useEffect(() => {
+        if (!token || !user) {
             return;
         }
 
-        if (isMobileViewport && activeTab === 'overview') {
-            setActiveTab(MOBILE_ACTIONS_TAB.id);
-        }
-    }, [token, isMobileViewport]);
+        localStorage.setItem(`${ACTIVE_TAB_STORAGE_PREFIX}${user.id}`, activeTab);
+    }, [token, user?.id, activeTab]);
 
     useEffect(() => {
         if (!token) {
@@ -536,6 +593,7 @@ function App() {
 
     const clearSessionState = (message) => {
         setBusy(false);
+        setAdminLoading(false);
         setError('');
         setToken('');
         setUser(null);
@@ -543,6 +601,7 @@ function App() {
         setHives([]);
         setReadings([]);
         setActions([]);
+        setAdminDashboard(null);
         setWeatherByHive({});
         setEditingApiaryId(null);
         setEditingHiveId(null);
@@ -551,6 +610,7 @@ function App() {
         setSelectedApiaryFilter('all');
         setSelectedReadingsApiaryFilter('all');
         setSelectedActionsApiaryFilter('all');
+        setSelectedAdminApiaryFilter('all');
         setInfo(message);
     };
 
@@ -571,14 +631,49 @@ function App() {
             setApiaries(apiaryData);
             setHives(hiveData);
             await fetchReadingsAndActions(token);
+
+            if (user?.is_admin) {
+                setAdminLoading(true);
+                const adminData = await apiRequestWithSession(`/api/admin/dashboard${buildAdminQuery()}`, { token });
+                setAdminDashboard(adminData);
+            }
         } catch (refreshError) {
             if (!isSessionExpiredError(refreshError)) {
                 setError(refreshError.message);
             }
         } finally {
+            setAdminLoading(false);
             setBusy(false);
         }
     };
+
+    const refreshAdminDashboard = async () => {
+        if (!token || !user?.is_admin) {
+            return;
+        }
+
+        setAdminLoading(true);
+        setError('');
+
+        try {
+            const adminData = await apiRequestWithSession(`/api/admin/dashboard${buildAdminQuery()}`, { token });
+            setAdminDashboard(adminData);
+        } catch (refreshError) {
+            if (!isSessionExpiredError(refreshError)) {
+                setError(refreshError.message);
+            }
+        } finally {
+            setAdminLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!token || !user?.is_admin) {
+            return;
+        }
+
+        refreshAdminDashboard();
+    }, [selectedAdminApiaryFilter]);
 
     const submitAuth = async (event) => {
         event.preventDefault();
@@ -1014,8 +1109,14 @@ function App() {
     };
 
     const navigationTabs = useMemo(
-        () => (isMobileViewport ? [MOBILE_ACTIONS_TAB, ...TABS] : TABS),
-        [isMobileViewport]
+        () => {
+            if (user?.is_admin) {
+                return [ADMIN_TAB, ACCOUNT_TAB];
+            }
+
+            return isMobileViewport ? [MOBILE_ACTIONS_TAB, ...TABS] : TABS;
+        },
+        [isMobileViewport, user?.is_admin]
     );
 
     const currentTabLabel = useMemo(
@@ -1026,6 +1127,10 @@ function App() {
     const currentTabDescription = useMemo(() => {
         if (activeTab === MOBILE_ACTIONS_TAB.id) {
             return 'Raccourcis terrain pour saisir rapidement un releve ou une intervention.';
+        }
+
+        if (activeTab === ADMIN_TAB.id) {
+            return 'Pilotage des comptes et supervision globale des creations de la plateforme.';
         }
 
         return 'Gestion multi-ruchers avec creation de ruche par selection de rucher.';
@@ -1055,6 +1160,11 @@ function App() {
                     }}
                     onOpenAccount={() => {
                         setActiveTab('account');
+                        setMobileMenuOpen(false);
+                    }}
+                    isAdmin={Boolean(user?.is_admin)}
+                    onOpenAdmin={() => {
+                        setActiveTab('admin');
                         setMobileMenuOpen(false);
                     }}
                 />
@@ -1153,6 +1263,22 @@ function App() {
             );
         }
 
+        if (activeTab === ADMIN_TAB.id) {
+            if (!user?.is_admin) {
+                return (
+                    <OverviewTab stats={stats} readings={readings} />
+                );
+            }
+
+            return (
+                <AdminTab
+                    data={adminDashboard}
+                    selectedApiaryFilter={selectedAdminApiaryFilter}
+                    onApiaryFilterChange={setSelectedAdminApiaryFilter}
+                />
+            );
+        }
+
         return (
             <AccountTab
                 user={user}
@@ -1239,17 +1365,6 @@ function App() {
                                 <div className="sidebar-actions">
                                     <button
                                         type="button"
-                                        className="btn"
-                                        onClick={async () => {
-                                            setMobileMenuOpen(false);
-                                            await refreshAll();
-                                        }}
-                                        disabled={busy}
-                                    >
-                                        Rafraichir
-                                    </button>
-                                    <button
-                                        type="button"
                                         className="btn btn-danger"
                                         onClick={async () => {
                                             setMobileMenuOpen(false);
@@ -1277,22 +1392,13 @@ function App() {
                                                 />
                                                 <p className="kicker">ApiaryHub Actions</p>
                                             </div>
-                                            {activeTab !== MOBILE_ACTIONS_TAB.id ? (
+                                            {!user?.is_admin && activeTab !== MOBILE_ACTIONS_TAB.id && (
                                                 <button
                                                     type="button"
                                                     className="btn mobile-action-back"
                                                     onClick={() => setActiveTab(MOBILE_ACTIONS_TAB.id)}
                                                 >
                                                     Retour actions
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    className="btn"
-                                                    onClick={refreshAll}
-                                                    disabled={busy}
-                                                >
-                                                    Rafraichir
                                                 </button>
                                             )}
                                         </>

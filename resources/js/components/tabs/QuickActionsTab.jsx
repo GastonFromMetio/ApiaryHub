@@ -6,6 +6,8 @@ export function QuickActionsTab({
     onOpenApiaries,
     onOpenHives,
     onOpenAccount,
+    isAdmin = false,
+    onOpenAdmin,
 }) {
     return (
         <section className="content-grid quick-actions-grid">
@@ -28,6 +30,9 @@ export function QuickActionsTab({
                     <button type="button" className="btn quick-link-btn" onClick={onOpenApiaries}>Ruchers</button>
                     <button type="button" className="btn quick-link-btn" onClick={onOpenHives}>Ruches</button>
                     <button type="button" className="btn quick-link-btn" onClick={onOpenAccount}>Compte</button>
+                    {isAdmin && (
+                        <button type="button" className="btn quick-link-btn" onClick={onOpenAdmin}>Admin</button>
+                    )}
                 </div>
             </article>
 

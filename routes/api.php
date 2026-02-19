@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionsController;
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\ApiariesController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HivesController;
@@ -44,4 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/actions', [ActionsController::class, 'store']);
     Route::put('/actions/{action}', [ActionsController::class, 'update']);
     Route::delete('/actions/{action}', [ActionsController::class, 'destroy']);
+
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+    });
 });
