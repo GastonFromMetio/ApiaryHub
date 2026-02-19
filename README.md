@@ -17,6 +17,9 @@ docker compose up --build -d
 
 Puis ouvrir [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
+Config Nginx locale (optionnelle):
+- `deploy/nginx/apiaryhub.local.conf`
+
 ## Credentials demo
 - email: `demo@apiaryhub.local`
 - password: `password123`
@@ -109,17 +112,16 @@ Recommandations:
 - ne pas exposer MySQL/Redis publiquement en prod
 - garder `APP_DEBUG=false`
 
-### 4) Configuration Nginx (HTTPS 443)
+### 4) Configuration Nginx serveur
 
-Le fichier de prod est:
-- `deploy/nginx/apiaryhub.prod.conf`
+Fichier serveur:
+- `deploy/nginx/apiaryhub.server.conf`
 
 Installation:
 
 ```bash
 cd ~/ApiaryHub
-sudo cp deploy/nginx/apiaryhub.prod.conf /etc/nginx/sites-available/apiaryhub
-sudo ln -sf /etc/nginx/sites-available/apiaryhub /etc/nginx/sites-enabled/apiaryhub
+sudo cp deploy/nginx/apiaryhub.server.conf /etc/nginx/conf.d/apiaryhub.conf
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -129,8 +131,6 @@ sudo systemctl reload nginx
 ```bash
 sudo certbot --nginx -d apiaryhub.fr -d www.apiaryhub.fr --redirect
 ```
-
-Le fichier Nginx est deja prepare avec un bloc `443 ssl` et une redirection `80 -> 443`.
 
 ### 6) Lancement en production
 
