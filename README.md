@@ -26,7 +26,7 @@ Puis ouvrir [http://127.0.0.1:8000](http://127.0.0.1:8000).
 - `apiaryhub-mysql` -> MySQL 8.4
 - `apiaryhub-redis` -> Redis 7
 
-## Mise en production sur `app.apiaryhub.fr` (Ubuntu VPS)
+## Mise en production sur `apiaryhub.fr` (Ubuntu VPS)
 
 ### 1) Prerequis serveur
 
@@ -66,13 +66,14 @@ certbot --version
 
 ### 2) DNS
 
-Creer un enregistrement `A`:
-- `app.apiaryhub.fr` -> IP publique du VPS
+Creer des enregistrements `A`:
+- `apiaryhub.fr` -> IP publique du VPS
+- `www.apiaryhub.fr` -> IP publique du VPS
 
 Validation:
 
 ```bash
-dig +short app.apiaryhub.fr
+dig +short apiaryhub.fr
 ```
 
 ### 3) Configuration applicative Docker/Laravel
@@ -83,15 +84,18 @@ Dans `docker-compose.yml`, configurer le service `app` en mode production:
 environment:
   APP_ENV: production
   APP_DEBUG: "false"
-  APP_URL: https://app.apiaryhub.fr
+  APP_URL: https://apiaryhub.fr
   APP_AUTO_SEED: "false"
   SESSION_SECURE_COOKIE: "true"
+  SESSION_DOMAIN: apiaryhub.fr
+  SANCTUM_STATEFUL_DOMAINS: apiaryhub.fr,www.apiaryhub.fr
   DB_CONNECTION: mysql
   DB_HOST: mysql
   DB_PORT: 3306
   DB_DATABASE: apiaryhub
   DB_USERNAME: apiaryhub
   DB_PASSWORD: "mot_de_passe_fort"
+  MYSQL_ROOT_PASSWORD: "mot_de_passe_root_fort"
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
@@ -123,7 +127,7 @@ sudo systemctl reload nginx
 ### 5) Certificat TLS Let’s Encrypt
 
 ```bash
-sudo certbot --nginx -d app.apiaryhub.fr --redirect
+sudo certbot --nginx -d apiaryhub.fr -d www.apiaryhub.fr --redirect
 ```
 
 Le fichier Nginx est deja prepare avec un bloc `443 ssl` et une redirection `80 -> 443`.

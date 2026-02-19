@@ -13,11 +13,11 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: "${APP_DEBUG:-false}"
-      APP_URL: ${APP_URL:-https://app.apiaryhub.fr}
+      APP_URL: ${APP_URL:-https://apiaryhub.fr}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
-      SESSION_DOMAIN: ${SESSION_DOMAIN:-app.apiaryhub.fr}
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-app.apiaryhub.fr}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-apiaryhub.fr}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-apiaryhub.fr,www.apiaryhub.fr}
       DB_CONNECTION: ${DB_CONNECTION:-mysql}
       DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: ${DB_PORT:-3306}
@@ -39,9 +39,9 @@ services:
     container_name: apiaryhub-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-apiaryhub}
-      MYSQL_USER: ${MYSQL_USER:-apiaryhub}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+      MYSQL_DATABASE: ${DB_DATABASE:-apiaryhub}
+      MYSQL_USER: ${DB_USERNAME:-apiaryhub}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root}
     ports:
       - "${MYSQL_BIND:-127.0.0.1}:3306:3306"
