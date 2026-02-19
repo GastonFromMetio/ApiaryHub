@@ -37,6 +37,16 @@ set_env_key QUEUE_CONNECTION "${QUEUE_CONNECTION:-}"
 set_env_key REDIS_CLIENT "${REDIS_CLIENT:-}"
 set_env_key REDIS_HOST "${REDIS_HOST:-}"
 set_env_key REDIS_PORT "${REDIS_PORT:-}"
+set_env_key MAIL_MAILER "${MAIL_MAILER:-}"
+set_env_key MAIL_SCHEME "${MAIL_SCHEME:-}"
+set_env_key MAIL_ENCRYPTION "${MAIL_ENCRYPTION:-}"
+set_env_key MAIL_HOST "${MAIL_HOST:-}"
+set_env_key MAIL_PORT "${MAIL_PORT:-}"
+set_env_key MAIL_USERNAME "${MAIL_USERNAME:-}"
+set_env_key MAIL_PASSWORD "${MAIL_PASSWORD:-}"
+set_env_key MAIL_FROM_ADDRESS "${MAIL_FROM_ADDRESS:-}"
+set_env_key MAIL_FROM_NAME "${MAIL_FROM_NAME:-}"
+set_env_key FRONTEND_URL "${FRONTEND_URL:-}"
 
 if ! grep -q '^APP_KEY=base64:' .env; then
   php artisan key:generate --force --ansi

@@ -165,6 +165,10 @@ sudo certbot certificates
 ## Endpoints API principaux
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/resend-verification`
+- `GET /api/auth/verify-email/{id}/{hash}`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `POST /api/auth/logout`
 - `GET|POST|PUT|DELETE /api/apiaries...`
 - `GET|POST|PUT|DELETE /api/hives...`
@@ -172,3 +176,31 @@ sudo certbot certificates
 - `GET|POST|PUT|DELETE /api/readings...`
 - `GET|POST|PUT|DELETE /api/actions...`
 - `GET /api/admin/dashboard` (admin uniquement)
+
+## Flux email securite compte
+- A l'inscription, un email de verification est envoye.
+- Tant que l'email n'est pas verifie, la connexion reste possible mais un rappel utilisateur est affiche pour finaliser la verification.
+- Le flux `mot de passe oublie` envoie un lien de reinitialisation par email.
+- En local, les emails passent par Mailpit.
+- Interface Mailpit: [http://localhost:8025](http://localhost:8025)
+
+## Configuration Brevo (SMTP)
+Pour envoyer les emails de verification et de reset via Brevo:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=your-brevo-login
+MAIL_PASSWORD=your-brevo-smtp-key
+MAIL_FROM_ADDRESS=noreply@apiaryhub.fr
+MAIL_FROM_NAME=ApiaryHub
+APP_URL=https://apiaryhub.fr
+```
+
+Notes:
+- `MAIL_PASSWORD` doit etre la cle SMTP Brevo (pas ton mot de passe de connexion Brevo).
+- `MAIL_FROM_ADDRESS` doit etre une adresse expediteur validee dans Brevo.
+- `APP_URL` doit pointer vers l'URL publique de ton application pour que les liens email soient corrects.
+- Apres modification des variables: `docker compose up -d --build app`.

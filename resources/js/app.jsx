@@ -33,6 +33,7 @@ const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const MOBILE_ACTIONS_TAB = { id: 'mobile-actions', label: 'Actions rapides' };
 const ADMIN_TAB = { id: 'admin', label: 'Administration' };
 const ACCOUNT_TAB = { id: 'account', label: 'Compte' };
+const RESET_PASSWORD_PATH_PREFIX = '/reset-password/';
 const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_complet.png';
 const BRAND_LOGO_MARK = '/branding/apiaryhub_logo_seul.png';
 
@@ -79,6 +80,7 @@ function App() {
         email: 'demo@apiaryhub.local',
         password: 'password123',
         password_confirmation: 'password123',
+        reset_token: '',
     });
 
     const [activeTab, setActiveTab] = useState('overview');
@@ -102,6 +104,8 @@ function App() {
     const [editingHiveForm, setEditingHiveForm] = useState(initialHiveForm);
 
     const [busy, setBusy] = useState(false);
+    const [verificationPopupBusy, setVerificationPopupBusy] = useState(false);
+    const [verificationPopupVisible, setVerificationPopupVisible] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -109,6 +113,7 @@ function App() {
         () => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false)
     );
     const [userLocation, setUserLocation] = useState(null);
+    const userNeedsEmailVerification = Boolean(token && user && !user.email_verified_at);
 
     const stats = useMemo(() => ({
         hiveCount: hives.length,
@@ -421,6 +426,52 @@ function App() {
     }, [token]);
 
     useEffect(() => {
+        if (!userNeedsEmailVerification) {
+            setVerificationPopupVisible(false);
+            return undefined;
+        }
+
+        setVerificationPopupVisible(true);
+
+        const intervalId = window.setInterval(() => {
+            setVerificationPopupVisible(true);
+        }, 90000);
+
+        return () => window.clearInterval(intervalId);
+    }, [userNeedsEmailVerification]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || token) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        const isResetPasswordPath = url.pathname.startsWith(RESET_PASSWORD_PATH_PREFIX);
+        const resetToken = isResetPasswordPath ? decodeURIComponent(url.pathname.slice(RESET_PASSWORD_PATH_PREFIX.length)) : '';
+        const emailFromUrl = url.searchParams.get('email');
+        const emailVerified = url.searchParams.get('email_verified');
+
+        if (emailVerified === '1') {
+            setInfo('Email confirme. Tu peux maintenant te connecter.');
+            url.searchParams.delete('email_verified');
+            window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+        }
+
+        if (!isResetPasswordPath || !resetToken) {
+            return;
+        }
+
+        setAuthMode('reset');
+        setAuthForm((previous) => ({
+            ...previous,
+            email: emailFromUrl || previous.email,
+            password: '',
+            password_confirmation: '',
+            reset_token: resetToken,
+        }));
+    }, [token]);
+
+    useEffect(() => {
         if (!token || !navigator.geolocation) {
             return;
         }
@@ -593,6 +644,8 @@ function App() {
 
     const clearSessionState = (message) => {
         setBusy(false);
+        setVerificationPopupBusy(false);
+        setVerificationPopupVisible(false);
         setAdminLoading(false);
         setError('');
         setToken('');
@@ -681,20 +734,148 @@ function App() {
         setError('');
         setInfo('');
 
-        const path = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
-        const body = authMode === 'login'
-            ? { email: authForm.email, password: authForm.password }
-            : authForm;
-
         try {
-            const payload = await apiRequest(path, { method: 'POST', body });
-            setToken(payload.token);
-            setActiveTab(isMobileViewport ? MOBILE_ACTIONS_TAB.id : 'overview');
-            setInfo(authMode === 'login' ? 'Connexion reussie.' : 'Compte cree et connecte.');
+            if (authMode === 'login') {
+                const payload = await apiRequest('/api/auth/login', {
+                    method: 'POST',
+                    body: { email: authForm.email, password: authForm.password },
+                });
+
+                setToken(payload.token);
+                setActiveTab(isMobileViewport ? MOBILE_ACTIONS_TAB.id : 'overview');
+                setInfo(payload.message || 'Connexion reussie.');
+                return;
+            }
+
+            if (authMode === 'register') {
+                await apiRequest('/api/auth/register', {
+                    method: 'POST',
+                    body: {
+                        name: authForm.name,
+                        email: authForm.email,
+                        password: authForm.password,
+                        password_confirmation: authForm.password_confirmation,
+                    },
+                });
+
+                setAuthMode('verify-pending');
+                setAuthForm((previous) => ({
+                    ...previous,
+                    password: '',
+                    password_confirmation: '',
+                }));
+                setInfo('Compte cree. Verifie ton email, puis connecte-toi.');
+                return;
+            }
+
+            if (authMode === 'forgot') {
+                await apiRequest('/api/auth/forgot-password', {
+                    method: 'POST',
+                    body: { email: authForm.email },
+                });
+
+                setInfo('Si cet email existe, un lien de reinitialisation a ete envoye.');
+                return;
+            }
+
+            if (authMode === 'reset') {
+                await apiRequest('/api/auth/reset-password', {
+                    method: 'POST',
+                    body: {
+                        email: authForm.email,
+                        token: authForm.reset_token,
+                        password: authForm.password,
+                        password_confirmation: authForm.password_confirmation,
+                    },
+                });
+
+                if (typeof window !== 'undefined' && window.location.pathname.startsWith(RESET_PASSWORD_PATH_PREFIX)) {
+                    window.history.replaceState({}, '', '/');
+                }
+
+                setAuthMode('login');
+                setAuthForm((previous) => ({
+                    ...previous,
+                    password: '',
+                    password_confirmation: '',
+                    reset_token: '',
+                }));
+                setInfo('Mot de passe reinitialise. Tu peux maintenant te connecter.');
+            }
         } catch (authError) {
             setError(authError.message);
         } finally {
             setBusy(false);
+        }
+    };
+
+    const resendVerificationEmail = async () => {
+        if (!authForm.email) {
+            setError('Saisis ton email pour renvoyer la verification.');
+            return;
+        }
+
+        setBusy(true);
+        setError('');
+
+        try {
+            await apiRequest('/api/auth/resend-verification', {
+                method: 'POST',
+                body: { email: authForm.email },
+            });
+            setInfo('Si ce compte existe et n\'est pas verifie, un email a ete renvoye.');
+        } catch (apiError) {
+            setError(apiError.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const resendVerificationEmailForConnectedUser = async () => {
+        if (!user?.email) {
+            return;
+        }
+
+        setVerificationPopupBusy(true);
+        setError('');
+
+        try {
+            await apiRequest('/api/auth/resend-verification', {
+                method: 'POST',
+                body: { email: user.email },
+            });
+            setInfo('Email de verification renvoye.');
+        } catch (apiError) {
+            setError(apiError.message);
+        } finally {
+            setVerificationPopupBusy(false);
+        }
+    };
+
+    const checkVerificationStatus = async () => {
+        if (!token) {
+            return;
+        }
+
+        setVerificationPopupBusy(true);
+        setError('');
+
+        try {
+            const me = await apiRequestWithSession('/api/user', { token });
+            setUser(me);
+
+            if (me?.email_verified_at) {
+                setVerificationPopupVisible(false);
+                setInfo('Email confirme. Merci.');
+            } else {
+                setInfo('Email toujours en attente de verification.');
+            }
+        } catch (apiError) {
+            if (!isSessionExpiredError(apiError)) {
+                setError(apiError.message);
+            }
+        } finally {
+            setVerificationPopupBusy(false);
         }
     };
 
@@ -1299,6 +1480,46 @@ function App() {
                 </div>
             )}
 
+            {token && userNeedsEmailVerification && verificationPopupVisible && (
+                <div className="verification-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="verify-email-title">
+                    <section className="verification-modal panel">
+                        <h2 id="verify-email-title">Verification email requise</h2>
+                        <p className="muted small">
+                            Ton compte est connecte, mais ton email n&apos;est pas encore confirme. Verifie ta boite mail pour finaliser ton acces.
+                        </p>
+                        <p className="muted small">
+                            Adresse: <strong>{user?.email}</strong>
+                        </p>
+                        <div className="row actions">
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={resendVerificationEmailForConnectedUser}
+                                disabled={verificationPopupBusy}
+                            >
+                                Renvoyer l&apos;email
+                            </button>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={checkVerificationStatus}
+                                disabled={verificationPopupBusy}
+                            >
+                                J&apos;ai confirme, verifier
+                            </button>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={() => setVerificationPopupVisible(false)}
+                                disabled={verificationPopupBusy}
+                            >
+                                Me le rappeler plus tard
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
             {!token ? (
                 <AuthPanel
                     authMode={authMode}
@@ -1306,6 +1527,7 @@ function App() {
                     authForm={authForm}
                     setAuthForm={setAuthForm}
                     submitAuth={submitAuth}
+                    resendVerificationEmail={resendVerificationEmail}
                     busy={busy}
                 />
             ) : (

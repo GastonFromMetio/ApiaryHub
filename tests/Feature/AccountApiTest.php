@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Apiary;
 use App\Models\Hive;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -26,6 +28,28 @@ class AccountApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('name', 'Updated Name')
             ->assertJsonPath('email', 'updated@example.test');
+    }
+
+    public function test_changing_email_requires_new_verification_mail(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson('/api/account', [
+            'name' => $user->name,
+            'email' => 'new-address@example.test',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('email', 'new-address@example.test')
+            ->assertJsonPath('email_verified_at', null);
+
+        Notification::assertSentTo($user->fresh(), VerifyEmail::class);
     }
 
     public function test_user_can_update_password_with_current_password(): void

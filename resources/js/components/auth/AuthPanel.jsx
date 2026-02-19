@@ -4,12 +4,36 @@ const AUTH_FEATURES = [
     'Meteo contextuelle par zone',
 ];
 
+const TITLES = {
+    login: 'Connexion securisee',
+    register: 'Creation de compte',
+    forgot: 'Mot de passe oublie',
+    reset: 'Reinitialiser le mot de passe',
+    'verify-pending': 'Verification de ton email',
+};
+
+const DESCRIPTIONS = {
+    login: 'Reprends ton suivi des ruchers en quelques secondes.',
+    register: 'Demarre ta gestion apicole connectee.',
+    forgot: 'On t\'envoie un lien de reinitialisation par email.',
+    reset: 'Definis ton nouveau mot de passe pour recuperer ton acces.',
+    'verify-pending': 'Un email de confirmation vient d\'etre envoye. Verifie ta boite de reception.',
+};
+
+const SUBMIT_LABELS = {
+    login: 'Se connecter',
+    register: 'Creer mon compte',
+    forgot: 'Envoyer le lien de reinitialisation',
+    reset: 'Reinitialiser mon mot de passe',
+};
+
 export function AuthPanel({
     authMode,
     setAuthMode,
     authForm,
     setAuthForm,
     submitAuth,
+    resendVerificationEmail,
     busy,
 }) {
     return (
@@ -38,32 +62,57 @@ export function AuthPanel({
 
             <form className="panel auth-card" onSubmit={submitAuth}>
                 <header className="auth-card-header">
-                    <h2>{authMode === 'login' ? 'Connexion securisee' : 'Creation de compte'}</h2>
-                    <p className="muted small">
-                        {authMode === 'login'
-                            ? 'Reprends ton suivi des ruchers en quelques secondes.'
-                            : 'Demarre ta gestion apicole connectee.'}
-                    </p>
+                    <h2>{TITLES[authMode] || TITLES.login}</h2>
+                    <p className="muted small">{DESCRIPTIONS[authMode] || DESCRIPTIONS.login}</p>
                 </header>
 
-                <div className="form-head auth-switch">
-                    <button
-                        type="button"
-                        className={authMode === 'login' ? 'seg active' : 'seg'}
-                        onClick={() => setAuthMode('login')}
-                        aria-pressed={authMode === 'login'}
-                    >
-                        Connexion
-                    </button>
-                    <button
-                        type="button"
-                        className={authMode === 'register' ? 'seg active' : 'seg'}
-                        onClick={() => setAuthMode('register')}
-                        aria-pressed={authMode === 'register'}
-                    >
-                        Inscription
-                    </button>
-                </div>
+                {authMode === 'verify-pending' && (
+                    <article className="auth-tunnel-card">
+                        <h3>Etape suivante</h3>
+                        <p className="muted small">
+                            Ouvre l&apos;email <strong>{authForm.email}</strong>, clique sur le lien, puis connecte-toi.
+                        </p>
+                        <div className="row actions auth-links-row">
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={resendVerificationEmail}
+                                disabled={busy}
+                            >
+                                Renvoyer l&apos;email
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => setAuthMode('login')}
+                                disabled={busy}
+                            >
+                                Aller a la connexion
+                            </button>
+                        </div>
+                    </article>
+                )}
+
+                {authMode !== 'forgot' && authMode !== 'reset' && authMode !== 'verify-pending' && (
+                    <div className="form-head auth-switch">
+                        <button
+                            type="button"
+                            className={authMode === 'login' ? 'seg active' : 'seg'}
+                            onClick={() => setAuthMode('login')}
+                            aria-pressed={authMode === 'login'}
+                        >
+                            Connexion
+                        </button>
+                        <button
+                            type="button"
+                            className={authMode === 'register' ? 'seg active' : 'seg'}
+                            onClick={() => setAuthMode('register')}
+                            aria-pressed={authMode === 'register'}
+                        >
+                            Inscription
+                        </button>
+                    </div>
+                )}
 
                 {authMode === 'register' && (
                     <label>
@@ -78,29 +127,33 @@ export function AuthPanel({
                     </label>
                 )}
 
-                <label>
-                    Email
-                    <input
-                        type="email"
-                        value={authForm.email}
-                        onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
-                        autoComplete="email"
-                        required
-                    />
-                </label>
+                {authMode !== 'verify-pending' && (
+                    <label>
+                        Email
+                        <input
+                            type="email"
+                            value={authForm.email}
+                            onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                            autoComplete="email"
+                            required
+                        />
+                    </label>
+                )}
 
-                <label>
-                    Mot de passe
-                    <input
-                        type="password"
-                        value={authForm.password}
-                        onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
-                        autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                        required
-                    />
-                </label>
+                {authMode !== 'forgot' && authMode !== 'verify-pending' && (
+                    <label>
+                        {authMode === 'reset' ? 'Nouveau mot de passe' : 'Mot de passe'}
+                        <input
+                            type="password"
+                            value={authForm.password}
+                            onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
+                            autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                            required
+                        />
+                    </label>
+                )}
 
-                {authMode === 'register' && (
+                {(authMode === 'register' || authMode === 'reset') && (
                     <label>
                         Confirmation mot de passe
                         <input
@@ -113,9 +166,36 @@ export function AuthPanel({
                     </label>
                 )}
 
-                <button className="btn btn-primary auth-submit" type="submit" disabled={busy}>
-                    {authMode === 'login' ? 'Se connecter' : 'Creer mon compte'}
-                </button>
+                {authMode !== 'verify-pending' && (
+                    <button className="btn btn-primary auth-submit" type="submit" disabled={busy}>
+                        {SUBMIT_LABELS[authMode] || SUBMIT_LABELS.login}
+                    </button>
+                )}
+
+                {authMode === 'login' && (
+                    <div className="row actions auth-links-row">
+                        <button
+                            type="button"
+                            className="btn btn-soft"
+                            onClick={() => setAuthMode('forgot')}
+                            disabled={busy}
+                        >
+                            Mot de passe oublie ?
+                        </button>
+                    </div>
+                )}
+
+                {(authMode === 'forgot' || authMode === 'reset') && (
+                    <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setAuthMode('login')}
+                        disabled={busy}
+                    >
+                        Retour connexion
+                    </button>
+                )}
+
                 <p className="muted small">Demo: demo@apiaryhub.local</p>
             </form>
         </div>

@@ -257,6 +257,36 @@ p {
     margin-top: 4px;
 }
 
+.auth-links-row {
+    margin-top: 2px;
+}
+
+.auth-tunnel-card {
+    display: grid;
+    gap: 10px;
+    border: 1px solid #c8d9cf;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(40, 95, 74, 0.1), rgba(195, 127, 46, 0.1));
+    padding: 12px;
+}
+
+.verification-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 7100;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    background: rgba(23, 20, 14, 0.45);
+    backdrop-filter: blur(2px);
+}
+
+.verification-modal {
+    width: min(96vw, 560px);
+    display: grid;
+    gap: 10px;
+}
+
 .dashboard-shell {
     position: relative;
     min-height: calc(100vh - 28px);

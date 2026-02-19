@@ -19,6 +19,7 @@ class AccountController extends Controller
     public function update(Request $request)
     {
         $user = $request->user();
+        $emailHasChanged = false;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -43,8 +44,18 @@ class AccountController extends Controller
         }
 
         $user->name = $validated['name'];
-        $user->email = $validated['email'];
+
+        if ($user->email !== $validated['email']) {
+            $emailHasChanged = true;
+            $user->email = $validated['email'];
+            $user->email_verified_at = null;
+        }
+
         $user->save();
+
+        if ($emailHasChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         return response()->json($user->fresh());
     }
