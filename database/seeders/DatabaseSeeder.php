@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Apiaryhub Demo',
             'password' => 'password123',
             'is_admin' => false,
+            'email_verified_at' => now(),
         ]);
 
         User::updateOrCreate([
@@ -34,6 +35,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'ApiaryHub Admin',
             'password' => 'password123',
             'is_admin' => true,
+            'email_verified_at' => now(),
         ]);
 
         // Keep demo seed deterministic: reset previous demo data.

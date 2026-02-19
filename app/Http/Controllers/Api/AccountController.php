@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class AccountController extends Controller
 {
@@ -54,7 +55,11 @@ class AccountController extends Controller
         $user->save();
 
         if ($emailHasChanged) {
-            $user->sendEmailVerificationNotification();
+            try {
+                $user->sendEmailVerificationNotification();
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
 
         return response()->json($user->fresh());

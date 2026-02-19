@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -24,11 +25,14 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($validated);
-        $user->sendEmailVerificationNotification();
+        $verificationEmailSent = $this->trySendVerificationEmail($user);
 
         return response()->json([
-            'message' => 'Compte cree. Verifie ton email pour activer ta connexion.',
+            'message' => $verificationEmailSent
+                ? 'Compte cree. Verifie ton email pour activer ta connexion.'
+                : 'Compte cree. Email de verification indisponible temporairement, reessaie plus tard.',
             'email_verification_required' => true,
+            'verification_email_sent' => $verificationEmailSent,
         ], 201);
     }
 
@@ -50,8 +54,10 @@ class AuthController extends Controller
 
         $emailVerificationRequired = ! $user->hasVerifiedEmail();
 
+        $verificationEmailSent = true;
+
         if ($emailVerificationRequired) {
-            $user->sendEmailVerificationNotification();
+            $verificationEmailSent = $this->trySendVerificationEmail($user);
         }
 
         $user->tokens()->delete();
@@ -62,8 +68,11 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer',
             'email_verification_required' => $emailVerificationRequired,
+            'verification_email_sent' => $verificationEmailSent,
             'message' => $emailVerificationRequired
-                ? 'Email non verifie. Verifie ta boite mail.'
+                ? ($verificationEmailSent
+                    ? 'Email non verifie. Verifie ta boite mail.'
+                    : 'Email non verifie. Verification indisponible temporairement, reessaie plus tard.')
                 : 'Connexion reussie.',
         ]);
     }
@@ -86,12 +95,16 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
+        $verificationEmailSent = false;
         if ($user && ! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
+            $verificationEmailSent = $this->trySendVerificationEmail($user);
         }
 
         return response()->json([
-            'message' => 'Si un compte non verifie existe, un email de verification vient d\'etre envoye.',
+            'message' => $verificationEmailSent
+                ? 'Si un compte non verifie existe, un email de verification vient d\'etre envoye.'
+                : 'Si un compte non verifie existe, reessaie plus tard pour renvoyer la verification.',
+            'verification_email_sent' => $verificationEmailSent,
         ]);
     }
 
@@ -163,5 +176,16 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Mot de passe reinitialise. Tu peux maintenant te connecter.',
         ]);
+    }
+
+    private function trySendVerificationEmail(User $user): bool
+    {
+        try {
+            $user->sendEmailVerificationNotification();
+            return true;
+        } catch (Throwable $exception) {
+            report($exception);
+            return false;
+        }
     }
 }
