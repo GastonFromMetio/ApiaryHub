@@ -20,6 +20,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (! filter_var((string) env('ALLOW_DEMO_SEED', false), FILTER_VALIDATE_BOOL)) {
+            return;
+        }
+
         $user = User::updateOrCreate([
             'email' => 'demo@apiaryhub.local',
         ], [

@@ -195,8 +195,6 @@ export function AuthPanel({
                         Retour connexion
                     </button>
                 )}
-
-                <p className="muted small">Demo: demo@apiaryhub.local</p>
             </form>
         </div>
     );

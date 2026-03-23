@@ -20,14 +20,6 @@ Puis ouvrir [http://127.0.0.1:8000](http://127.0.0.1:8000).
 Config Nginx locale (optionnelle):
 - `deploy/nginx/apiaryhub.local.conf`
 
-## Credentials demo
-- email: `demo@apiaryhub.local`
-- password: `password123`
-
-## Credentials admin
-- email: `gastonolonde@gmail.com`
-- password: `password123`
-
 ## Services Docker
 - `apiaryhub-app` -> Laravel + frontend React, expose `8000`
 - `apiaryhub-mysql` -> MySQL 8.4
@@ -115,6 +107,7 @@ Recommandations:
 - utiliser des mots de passe forts (DB, root DB)
 - ne pas exposer MySQL/Redis publiquement en prod
 - garder `APP_DEBUG=false`
+- garder `ALLOW_DEMO_SEED=false`
 
 ### 4) Configuration Nginx serveur
 

@@ -77,9 +77,9 @@ function App() {
     const [authMode, setAuthMode] = useState('login');
     const [authForm, setAuthForm] = useState({
         name: '',
-        email: 'demo@apiaryhub.local',
-        password: 'password123',
-        password_confirmation: 'password123',
+        email: '',
+        password: '',
+        password_confirmation: '',
         reset_token: '',
     });
 
