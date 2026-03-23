@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Notifications\QueuedResetPassword;
+use App\Notifications\QueuedVerifyEmail;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -33,7 +33,7 @@ class AuthEmailFlowTest extends TestCase
         $user = User::where('email', 'nouveau@example.test')->firstOrFail();
 
         $this->assertNull($user->email_verified_at);
-        Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertSentTo($user, QueuedVerifyEmail::class);
     }
 
     public function test_unverified_user_can_login_but_is_flagged_and_receives_verification_email(): void
@@ -55,7 +55,7 @@ class AuthEmailFlowTest extends TestCase
             ->assertJsonPath('email_verification_required', true)
             ->assertJsonStructure(['token', 'token_type', 'user']);
 
-        Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertSentTo($user, QueuedVerifyEmail::class);
     }
 
     public function test_user_can_verify_email_through_signed_link(): void
@@ -96,7 +96,7 @@ class AuthEmailFlowTest extends TestCase
 
         $response->assertOk();
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, QueuedResetPassword::class);
     }
 
     public function test_user_can_reset_password_and_login_with_new_password(): void

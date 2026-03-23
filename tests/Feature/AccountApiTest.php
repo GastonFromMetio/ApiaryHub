@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Apiary;
 use App\Models\Hive;
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\QueuedVerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
@@ -49,7 +49,7 @@ class AccountApiTest extends TestCase
             ->assertJsonPath('email', 'new-address@example.test')
             ->assertJsonPath('email_verified_at', null);
 
-        Notification::assertSentTo($user->fresh(), VerifyEmail::class);
+        Notification::assertSentTo($user->fresh(), QueuedVerifyEmail::class);
     }
 
     public function test_user_can_update_password_with_current_password(): void

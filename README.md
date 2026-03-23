@@ -22,6 +22,7 @@ Config Nginx locale (optionnelle):
 
 ## Services Docker
 - `apiaryhub-app` -> Laravel + frontend React, expose `8000`
+- `apiaryhub-worker` -> worker Laravel pour les emails et jobs asynchrones
 - `apiaryhub-mysql` -> MySQL 8.4
 - `apiaryhub-redis` -> Redis 7
 
@@ -98,6 +99,8 @@ environment:
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   QUEUE_CONNECTION: redis
+  MAIL_QUEUE: mail
+  QUEUE_WORKER_QUEUE: mail
   REDIS_CLIENT: phpredis
   REDIS_HOST: redis
   REDIS_PORT: 6379
@@ -187,6 +190,8 @@ MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
 MAIL_USERNAME=your-brevo-login
 MAIL_PASSWORD=your-brevo-smtp-key
+MAIL_QUEUE=mail
+QUEUE_WORKER_QUEUE=mail
 MAIL_FROM_ADDRESS=noreply@apiaryhub.fr
 MAIL_FROM_NAME=ApiaryHub
 APP_URL=https://apiaryhub.fr

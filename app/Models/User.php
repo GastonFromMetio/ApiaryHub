@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Notifications\QueuedResetPassword;
+use App\Notifications\QueuedVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,5 +60,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function apiaries(): HasMany
     {
         return $this->hasMany(Apiary::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new QueuedVerifyEmail());
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new QueuedResetPassword($token));
     }
 }

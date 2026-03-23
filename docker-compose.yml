@@ -33,6 +33,7 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      MAIL_QUEUE: ${MAIL_QUEUE:-mail}
       MAIL_MAILER: ${MAIL_MAILER:-smtp}
       MAIL_SCHEME: ${MAIL_SCHEME:-null}
       MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-null}
@@ -40,11 +41,67 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_EHLO_DOMAIN: ${MAIL_EHLO_DOMAIN:-localhost}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@apiaryhub.app}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ApiaryHub}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     ports:
       - "${APP_PORT:-8000}:8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apiaryhub-worker
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      APP_RUNTIME: worker
+      RUN_MIGRATIONS: "false"
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_URL: ${APP_URL:-https://apiaryhub.fr}
+      APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
+      ALLOW_DEMO_SEED: "${ALLOW_DEMO_SEED:-false}"
+      SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-apiaryhub.fr}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-apiaryhub.fr,www.apiaryhub.fr}
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-apiaryhub}
+      DB_USERNAME: ${DB_USERNAME:-apiaryhub}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
+      CACHE_STORE: ${CACHE_STORE:-redis}
+      SESSION_DRIVER: ${SESSION_DRIVER:-redis}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+      QUEUE_WORKER_QUEUE: ${QUEUE_WORKER_QUEUE:-mail}
+      QUEUE_WORKER_SLEEP: ${QUEUE_WORKER_SLEEP:-3}
+      QUEUE_WORKER_TRIES: ${QUEUE_WORKER_TRIES:-3}
+      QUEUE_WORKER_TIMEOUT: ${QUEUE_WORKER_TIMEOUT:-120}
+      QUEUE_WORKER_MAX_TIME: ${QUEUE_WORKER_MAX_TIME:-3600}
+      REDIS_CLIENT: ${REDIS_CLIENT:-phpredis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      MAIL_QUEUE: ${MAIL_QUEUE:-mail}
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_SCHEME: ${MAIL_SCHEME:-null}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-null}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_EHLO_DOMAIN: ${MAIL_EHLO_DOMAIN:-localhost}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@apiaryhub.app}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ApiaryHub}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
 
   mysql:
     image: mysql:8.4
