@@ -2,11 +2,10 @@ export const HIVE_STATUSES = ['active', 'inactive', 'maintenance'];
 export const FALLBACK_CENTER = [46.603354, 1.888334];
 
 export const TABS = [
-    { id: 'overview', label: "Vue d'ensemble" },
+    { id: 'field', label: 'Terrain' },
     { id: 'apiaries', label: 'Ruchers' },
-    { id: 'hives', label: 'Ruches' },
-    { id: 'readings', label: 'Releves' },
-    { id: 'actions', label: 'Interventions' },
+    { id: 'journal', label: 'Journal' },
+    { id: 'compliance', label: 'Conformite' },
     { id: 'account', label: 'Compte' },
 ];
 

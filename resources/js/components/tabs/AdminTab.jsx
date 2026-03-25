@@ -1,6 +1,19 @@
+import { Activity, Hexagon, MapPinned, ShieldCheck, Users } from "lucide-react";
+
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { EmptyState, MetricCard, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
+import { formatCountLabel } from "@/utils/text";
+
 function formatDate(value) {
     if (!value) {
-        return '-';
+        return "-";
     }
 
     return new Date(value).toLocaleString();
@@ -10,21 +23,33 @@ function BarChart({ rows = [] }) {
     const maxValue = rows.reduce((acc, row) => Math.max(acc, row.total || 0), 1);
 
     return (
-        <div className="admin-bars">
-            {rows.map((row) => {
-                const barHeight = Math.max(8, Math.round(((row.total || 0) / maxValue) * 100));
+        <div className="grid gap-3">
+            <div className="flex h-64 items-end gap-3 rounded-[24px] border border-border/70 bg-secondary/35 p-4">
+                {rows.map((row) => {
+                    const totalHeight = Math.max(12, Math.round(((row.total || 0) / maxValue) * 100));
+                    const actionsHeight = Math.max(8, Math.round(((row.actions || 0) / maxValue) * 100));
+                    const readingsHeight = Math.max(8, Math.round(((row.readings || 0) / maxValue) * 100));
 
-                return (
-                    <div className="admin-bar-item" key={row.day}>
-                        <div className="admin-bar-stack" title={`${row.day}: ${row.total} actions`}>
-                            <span className="admin-bar admin-bar-readings" style={{ height: `${Math.max(4, Math.round(((row.readings || 0) / maxValue) * 100))}%` }} />
-                            <span className="admin-bar admin-bar-actions" style={{ height: `${Math.max(4, Math.round(((row.actions || 0) / maxValue) * 100))}%` }} />
-                            <span className="admin-bar admin-bar-total" style={{ height: `${barHeight}%` }} />
+                    return (
+                        <div key={row.day} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                            <div
+                                className="flex h-48 w-full items-end justify-center gap-1 rounded-[18px] border border-border/50 bg-background/80 px-2 py-3"
+                                title={`${row.day}: ${row.total} activites`}
+                            >
+                                <span className="w-3 rounded-full bg-primary/75" style={{ height: `${readingsHeight}%` }} />
+                                <span className="w-3 rounded-full bg-accent/85" style={{ height: `${actionsHeight}%` }} />
+                                <span className="w-3 rounded-full bg-foreground/70" style={{ height: `${totalHeight}%` }} />
+                            </div>
+                            <p className="text-center text-xs text-muted-foreground">{new Date(row.day).toLocaleDateString()}</p>
                         </div>
-                        <p className="muted small">{new Date(row.day).toLocaleDateString()}</p>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <StatusBadge className="bg-primary/10 text-primary">Releves</StatusBadge>
+                <StatusBadge className="bg-accent/20 text-accent-foreground">Interventions</StatusBadge>
+                <StatusBadge variant="outline">Total</StatusBadge>
+            </div>
         </div>
     );
 }
@@ -39,128 +64,121 @@ export function AdminTab({
     const recent = data?.recent_creations || {};
     const activityByDay = data?.activity_by_day || [];
     const apiaryOptions = data?.apiary_options || [];
+    const recentFeed = [...(recent.readings || []), ...(recent.actions || [])]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10);
 
     return (
-        <section className="content-grid admin-grid-full">
-            <article className="panel admin-controls-card">
-                <div className="row between">
-                    <div>
-                        <h2>Dashboard admin complet</h2>
-                        <p className="muted small">Analyse des comptes, activite et creations avec filtre par rucher.</p>
-                    </div>
-                </div>
-                <div className="admin-filters-row">
-                    <label>
-                        Filtrer par rucher
-                        <select
-                            value={selectedApiaryFilter}
-                            onChange={(event) => onApiaryFilterChange(event.target.value)}
-                        >
+        <section className="grid gap-6">
+            <SectionCard
+                title="Vue d ensemble"
+                description="Comptes, ruchers, activite."
+                action={
+                    <div className="w-full min-w-56 max-w-sm">
+                        <NativeSelect value={selectedApiaryFilter} onChange={(event) => onApiaryFilterChange(event.target.value)}>
                             <option value="all">Tous les ruchers</option>
                             {apiaryOptions.map((apiary) => (
                                 <option key={apiary.id} value={String(apiary.id)}>
-                                    {apiary.name} ({apiary.user?.email || 'sans proprietaire'})
+                                    {apiary.name} ({apiary.user?.email || "sans proprietaire"})
                                 </option>
                             ))}
-                        </select>
-                    </label>
-                </div>
-                <div className="admin-kpi-grid">
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Personnes</span>
-                        <strong>{stats.accounts ?? 0}</strong>
+                        </NativeSelect>
                     </div>
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Admins</span>
-                        <strong>{stats.admins ?? 0}</strong>
-                    </div>
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Utilisateurs actifs</span>
-                        <strong>{stats.active_users ?? 0}</strong>
-                    </div>
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Ruchers</span>
-                        <strong>{stats.apiaries ?? 0}</strong>
-                    </div>
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Ruches</span>
-                        <strong>{stats.hives ?? 0}</strong>
-                    </div>
-                    <div className="admin-kpi-item">
-                        <span className="muted small">Activites (releves + interventions)</span>
-                        <strong>{(stats.readings ?? 0) + (stats.actions ?? 0)}</strong>
-                    </div>
-                </div>
-            </article>
+                }
+                contentClassName="grid gap-4 lg:grid-cols-5"
+            >
+                <MetricCard label="Comptes" value={stats.accounts ?? 0} hint="Tous les profils." icon={Users} accent="forest" />
+                <MetricCard label="Admins" value={stats.admins ?? 0} hint="Acces eleves." icon={ShieldCheck} accent="clay" />
+                <MetricCard label="Ruchers" value={stats.apiaries ?? 0} hint="Sites indexes." icon={MapPinned} accent="honey" />
+                <MetricCard label="Ruches" value={stats.hives ?? 0} hint="Ruches du filtre." icon={Hexagon} accent="sky" />
+                <MetricCard label="Activite" value={(stats.readings ?? 0) + (stats.actions ?? 0)} hint="Mesures + actions." icon={Activity} accent="forest" />
+            </SectionCard>
 
-            <article className="panel admin-table-card">
-                <div className="row between">
-                    <h3>Utilisateurs et activite</h3>
-                    <span className="chip">{people.length} personnes</span>
-                </div>
-                <div className="admin-table-wrap">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Nom</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Ruchers</th>
-                                <th>Ruches</th>
-                                <th>Releves</th>
-                                <th>Interventions</th>
-                                <th>Derniere activite</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {people.map((person) => (
-                                <tr key={person.id}>
-                                    <td>{person.name}</td>
-                                    <td>{person.email}</td>
-                                    <td>{person.is_admin ? 'Admin' : 'Utilisateur'}</td>
-                                    <td>{person.apiaries_count ?? 0}</td>
-                                    <td>{person.hives_count ?? 0}</td>
-                                    <td>{person.readings_count ?? 0}</td>
-                                    <td>{person.actions_count ?? 0}</td>
-                                    <td>{formatDate(person.last_activity_at)}</td>
-                                </tr>
-                            ))}
-                            {people.length === 0 && (
-                                <tr>
-                                    <td colSpan={8} className="muted small">Aucune personne trouvee pour ce filtre.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </article>
+            <SectionCard
+                title="Utilisateurs et activite"
+                description="Comptes et volumes."
+                action={<StatusBadge variant="secondary">{formatCountLabel(people.length, "personne")}</StatusBadge>}
+            >
+                {people.length === 0 ? (
+                    <EmptyState
+                        title="Aucune personne pour ce filtre"
+                        description="Elargis le filtre rucher pour retrouver les comptes et leurs volumes d activite."
+                    />
+                ) : (
+                    <div className="overflow-hidden rounded-[24px] border border-border/70">
+                        <Table>
+                            <TableHeader className="bg-secondary/45">
+                                <TableRow>
+                                    <TableHead>Nom</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Ruchers</TableHead>
+                                    <TableHead>Ruches</TableHead>
+                                    <TableHead>Releves</TableHead>
+                                    <TableHead>Interventions</TableHead>
+                                    <TableHead>Derniere activite</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {people.map((person) => (
+                                    <TableRow key={person.id} className="bg-background/80">
+                                        <TableCell className="font-medium text-foreground">{person.name}</TableCell>
+                                        <TableCell className="text-muted-foreground">{person.email}</TableCell>
+                                        <TableCell>{person.is_admin ? "Admin" : "Utilisateur"}</TableCell>
+                                        <TableCell>{person.apiaries_count ?? 0}</TableCell>
+                                        <TableCell>{person.hives_count ?? 0}</TableCell>
+                                        <TableCell>{person.readings_count ?? 0}</TableCell>
+                                        <TableCell>{person.actions_count ?? 0}</TableCell>
+                                        <TableCell className="text-muted-foreground">{formatDate(person.last_activity_at)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </SectionCard>
 
-            <div className="admin-analytics-grid">
-                <article className="panel">
-                    <h3>Activite des 7 derniers jours</h3>
-                    <p className="muted small">Barres superposees: releves, interventions et total.</p>
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <SectionCard
+                    title="Activite des 7 derniers jours"
+                    description="Mesures, actions, total."
+                >
                     <BarChart rows={activityByDay} />
-                </article>
+                </SectionCard>
 
-                <article className="panel">
-                    <h3>Flux recentes</h3>
-                    <div className="list-shell">
-                        {[...(recent.readings || []), ...(recent.actions || [])]
-                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                            .slice(0, 10)
-                            .map((entry) => (
-                                <div className="item-card" key={`feed-${entry.id}-${entry.created_at}`}>
-                                    <div className="row between">
-                                        <strong>{entry.type ? `Intervention: ${entry.type}` : `Releve ${entry.hive?.name || '#'}`}</strong>
-                                        <span className="chip">{formatDate(entry.created_at)}</span>
-                                    </div>
-                                    <p className="muted small">
-                                        {entry.hive?.apiary_entity?.name || entry.hive?.apiaryEntity?.name || 'Rucher non defini'} | {entry.hive?.user?.email || '-'}
-                                    </p>
+                <SectionCard
+                    title="Flux recent"
+                    description="Dernieres creations."
+                    contentClassName="grid gap-4"
+                >
+                    {recentFeed.length === 0 ? (
+                        <EmptyState
+                            title="Aucune creation recente"
+                            description="Aucune mesure ni intervention recente n est disponible sur le filtre courant."
+                        />
+                    ) : (
+                        recentFeed.map((entry) => (
+                            <article
+                                key={`feed-${entry.id}-${entry.created_at}`}
+                                className="rounded-[24px] border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
+                            >
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <StatusBadge className={entry.type ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
+                                        {entry.type ? "Intervention" : "Releve"}
+                                    </StatusBadge>
+                                    <p className="text-sm text-muted-foreground">{formatDate(entry.created_at)}</p>
                                 </div>
-                            ))}
-                    </div>
-                </article>
+                                <h3 className="mt-4 font-display text-2xl text-foreground">
+                                    {entry.type ? entry.type : entry.hive?.name || `Ruche #${entry.hive_id}`}
+                                </h3>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    {entry.hive?.apiary_entity?.name || entry.hive?.apiaryEntity?.name || "Rucher non defini"}
+                                </p>
+                                <p className="mt-2 text-sm text-muted-foreground">{entry.hive?.user?.email || "-"}</p>
+                            </article>
+                        ))
+                    )}
+                </SectionCard>
             </div>
         </section>
     );

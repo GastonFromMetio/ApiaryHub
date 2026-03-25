@@ -18,11 +18,28 @@ set_env_key() {
     return 0
   fi
 
-  if grep -q "^${key}=" .env; then
-    sed -i "s|^${key}=.*|${key}=${value}|" .env
-  else
-    printf '\n%s=%s\n' "$key" "$value" >> .env
-  fi
+  php -r '
+$file = ".env";
+$key = $argv[1];
+$value = $argv[2];
+$lines = file_exists($file) ? file($file, FILE_IGNORE_NEW_LINES) : [];
+$prefix = $key . "=";
+$updated = false;
+
+foreach ($lines as $index => $line) {
+    if (str_starts_with($line, $prefix)) {
+        $lines[$index] = $prefix . $value;
+        $updated = true;
+        break;
+    }
+}
+
+if (! $updated) {
+    $lines[] = $prefix . $value;
+}
+
+file_put_contents($file, implode(PHP_EOL, $lines) . PHP_EOL);
+' "$key" "$value"
 }
 
 # Keep runtime infra settings aligned with Docker Compose environment.
