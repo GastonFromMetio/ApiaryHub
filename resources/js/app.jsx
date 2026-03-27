@@ -30,7 +30,7 @@ const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const ADMIN_TAB = { id: 'admin', label: 'Administration' };
 const ACCOUNT_TAB = { id: 'account', label: 'Compte' };
 const RESET_PASSWORD_PATH_PREFIX = '/reset-password/';
-const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_complet.png';
+const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_seul_512.png';
 const OperationsTab = lazyNamed(() => import('./components/tabs/OperationsTab'), 'OperationsTab');
 const FieldTab = lazyNamed(() => import('./components/tabs/FieldTab'), 'FieldTab');
 const JournalTab = lazyNamed(() => import('./components/tabs/JournalTab'), 'JournalTab');
