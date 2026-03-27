@@ -205,7 +205,7 @@ function Sidebar({
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
-            ? "p-3 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(6))+2px)]"
+            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(6))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
           className
         )}
@@ -213,7 +213,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex h-full w-full flex-col overflow-hidden bg-sidebar group-data-[variant=floating]:rounded-[calc(var(--radius-shell)-0.4rem)] group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border/70 group-data-[variant=floating]:shadow-[0_28px_84px_-58px_rgba(7,14,12,0.88)] group-data-[variant=inset]:rounded-[calc(var(--radius-shell)-0.4rem)] group-data-[variant=inset]:border group-data-[variant=inset]:border-sidebar-border/80 group-data-[variant=inset]:bg-[linear-gradient(180deg,hsl(var(--sidebar))/0.98,hsl(var(--sidebar-accent))/0.96)] group-data-[variant=inset]:shadow-[0_30px_90px_-60px_rgba(9,17,14,0.92),inset_0_1px_0_rgba(255,255,255,0.05)]">
+          className="flex h-full w-full flex-col overflow-hidden bg-sidebar group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border/70 group-data-[variant=floating]:shadow-[0_28px_84px_-58px_rgba(7,14,12,0.88)] group-data-[variant=inset]:border-r group-data-[variant=inset]:border-sidebar-border/80 group-data-[variant=inset]:bg-[linear-gradient(180deg,hsl(var(--sidebar))/0.98,hsl(var(--sidebar-accent))/0.96)] group-data-[variant=inset]:shadow-none">
           {children}
         </div>
       </div>
@@ -282,7 +282,7 @@ function SidebarInset({
       data-slot="sidebar-inset"
       className={cn(
         "relative flex w-full flex-1 flex-col bg-background",
-        "md:peer-data-[variant=inset]:m-1 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:overflow-hidden md:peer-data-[variant=inset]:rounded-[calc(var(--radius-shell)+0.15rem)] md:peer-data-[variant=inset]:bg-transparent md:peer-data-[variant=inset]:shadow-none md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-1",
+        "md:peer-data-[variant=inset]:overflow-hidden md:peer-data-[variant=inset]:bg-transparent md:peer-data-[variant=inset]:shadow-none",
         className
       )}
       {...props} />

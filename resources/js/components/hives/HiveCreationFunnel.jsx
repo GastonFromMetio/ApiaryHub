@@ -30,7 +30,7 @@ export function HiveCreationFunnel({
         }
 
         if (!hiveForm.apiary_id) {
-            setError("Selectionne un rucher.");
+            setError("Sélectionne un rucher.");
             return;
         }
 
@@ -47,7 +47,7 @@ export function HiveCreationFunnel({
             {apiaries.length === 0 ? (
                 <EmptyState
                     title="Aucun rucher disponible"
-                    description="Cree d abord un rucher."
+                    description="Crée d’abord un rucher."
                 />
             ) : (
                 <form className="grid gap-5" onSubmit={submitHive}>
@@ -93,7 +93,7 @@ export function HiveCreationFunnel({
                                     rows={6}
                                     value={hiveForm.notes}
                                     onChange={(event) => setHiveForm({ ...hiveForm, notes: event.target.value })}
-                                    placeholder="Observations utiles pour le suivi, comportement, repere physique..."
+                                    placeholder="Observations utiles pour le suivi, comportement, repère physique..."
                                     className="min-h-36 rounded-2xl"
                                 />
                             </FieldBlock>
@@ -120,13 +120,13 @@ export function HiveCreationFunnel({
                                         <p className="text-sm font-medium text-foreground">{selectedApiary.name}</p>
                                     </div>
                                     <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                        Lat {selectedApiary.latitude ?? "-"} / Lon {selectedApiary.longitude ?? "-"}
+                                        Lat. {selectedApiary.latitude ?? "-"} / Lon. {selectedApiary.longitude ?? "-"}
                                     </p>
                                 </div>
                             ) : (
                                 <div className="radius-subpanel border border-dashed border-border/65 bg-background/60 p-4">
                                     <p className="text-sm leading-6 text-muted-foreground">
-                                        Selectionne un rucher pour afficher sa position et preparer le contexte de la ruche.
+                                        Sélectionne un rucher pour afficher sa position et préparer le contexte de la ruche.
                                     </p>
                                 </div>
                             )}

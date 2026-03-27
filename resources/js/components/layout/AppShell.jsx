@@ -1,11 +1,11 @@
 import {
     BellRing,
     BookText,
+    FileText,
     Hexagon,
     LayoutDashboard,
     LogOut,
     MapPinned,
-    ShieldCheck,
     UserRound,
 } from "lucide-react";
 
@@ -33,7 +33,7 @@ const ICONS = {
     field: LayoutDashboard,
     apiaries: MapPinned,
     journal: BookText,
-    compliance: ShieldCheck,
+    compliance: FileText,
     account: UserRound,
     admin: Hexagon,
 };
@@ -81,7 +81,7 @@ export function AppShell({
             <Sidebar
                 collapsible="offcanvas"
                 variant="inset"
-                className="border-r-0 md:top-1 md:bottom-1 md:left-1 md:h-[calc(100svh-0.5rem)]"
+                className="border-r-0 md:top-0 md:bottom-0 md:left-0 md:h-svh"
             >
                 <SidebarHeader className="shrink-0 gap-4 px-4 pb-3 pt-5">
                     <div className="radius-panel border border-sidebar-border/70 bg-sidebar-accent/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -131,7 +131,7 @@ export function AppShell({
                                                     size="lg"
                                                     tooltip={tab.label}
                                                     className={cn(
-                                                        "radius-control px-3 py-3 transition",
+                                                        "radius-control  transition",
                                                         isActive
                                                             ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_12px_30px_-18px_rgba(0,0,0,0.45)]"
                                                             : "hover:bg-sidebar-accent/80"
@@ -163,7 +163,7 @@ export function AppShell({
                                 <p className="truncate text-xs text-sidebar-foreground/60">{user?.email || "-"}</p>
                                 {userNeedsEmailVerification ? (
                                     <Badge variant="outline" className="mt-2 rounded-full border-amber-300/20 bg-amber-300/8 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-50/85">
-                                        Email a verifier
+                                        Email à vérifier
                                     </Badge>
                                 ) : null}
                             </div>
@@ -184,12 +184,12 @@ export function AppShell({
             </Sidebar>
 
             <SidebarInset className="relative isolate h-full min-h-0 overflow-hidden bg-transparent">
-                <div className="relative flex h-full min-h-0 flex-col overflow-hidden border border-border/45 bg-[linear-gradient(180deg,hsl(var(--shell-topbar))/0.8,hsla(43,34%,94%,0.68))] shadow-[0_36px_110px_-78px_rgba(28,22,15,0.58)]">
+                <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--shell-topbar))/0.8,hsla(43,34%,94%,0.68))]">
                     <div className="app-shell-canvas pointer-events-none absolute inset-0 -z-10" />
 
-                    <header className="shrink-0 px-4 pt-4 lg:px-8 lg:pt-5">
+                    <header className="shrink-0 px-0 pt-0">
                         <div
-                            className="radius-shell mx-auto flex w-full max-w-[1600px] flex-col gap-4 border border-border/55 px-3 py-3 shadow-[0_28px_90px_-62px_rgba(36,28,18,0.46)] backdrop-blur-xl"
+                            className="flex w-full flex-col gap-4 border-b border-border/45 px-4 py-4 backdrop-blur-xl lg:px-6 lg:py-5"
                             style={{ backgroundColor: "hsl(var(--shell-topbar) / 0.72)" }}
                         >
                             <div className="radius-panel flex min-w-0 items-start gap-3 border border-border/55 bg-[linear-gradient(180deg,hsl(var(--background))/0.88,hsla(43,34%,95%,0.78))] px-4 py-4 shadow-[0_18px_48px_-38px_rgba(36,28,18,0.35)] backdrop-blur-sm">
@@ -210,20 +210,20 @@ export function AppShell({
                     </header>
 
                     <ScrollArea className="min-h-0 flex-1">
-                        <div className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col px-3 pb-6 pt-4 lg:px-6 lg:pt-5">
+                        <div className="relative flex w-full flex-1 flex-col px-4 pb-4 pt-4 lg:px-6 lg:pt-5">
                             <div className="relative z-10 flex flex-1 flex-col gap-5">
                                 {showVerificationNotice ? (
                                     <Alert className="radius-panel border-amber-300/30 bg-[linear-gradient(135deg,rgba(254,243,199,0.72),rgba(255,251,235,0.94))] shadow-[0_20px_60px_-42px_rgba(146,107,32,0.35)]">
                                         <BellRing className="text-amber-700" />
                                         <AlertTitle className="text-amber-900">Validation email requise</AlertTitle>
                                         <AlertDescription className="gap-3 text-amber-900/80">
-                                            <p>Confirme l adresse du compte pour finaliser l acces.</p>
+                                            <p>Confirme l’adresse du compte pour finaliser l’accès.</p>
                                             <div className="flex flex-wrap gap-2">
                                                 <Button type="button" size="sm" className="radius-control" onClick={onResendVerification} disabled={verificationBusy}>
                                                     Renvoyer
                                                 </Button>
                                                 <Button type="button" size="sm" variant="outline" className="radius-control" onClick={onCheckVerification} disabled={verificationBusy}>
-                                                    J ai valide
+                                                    J’ai validé
                                                 </Button>
                                                 <Button type="button" size="sm" variant="ghost" className="radius-control text-amber-900/80 hover:bg-amber-100/60" onClick={onDismissVerification}>
                                                     Masquer

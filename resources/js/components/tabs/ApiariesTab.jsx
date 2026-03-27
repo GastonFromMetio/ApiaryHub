@@ -113,7 +113,7 @@ export function ApiariesTab({
                             <div>
                                 <p className="text-sm font-medium text-foreground">Position du rucher</p>
                                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                    Clique sur la carte pour placer le rucher avec precision.
+                                    Clique sur la carte pour placer le rucher avec précision.
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -167,7 +167,7 @@ export function ApiariesTab({
                             rows={4}
                             value={apiaryForm.notes}
                             onChange={(event) => setApiaryForm({ ...apiaryForm, notes: event.target.value })}
-                            placeholder="Acces, environnement, contraintes ou observations utiles."
+                            placeholder="Accès, environnement, contraintes ou observations utiles."
                             className="min-h-28 rounded-2xl"
                         />
                     </FieldBlock>
@@ -178,7 +178,7 @@ export function ApiariesTab({
                             Enregistrer le rucher
                         </Button>
                         <p className="text-sm text-muted-foreground">
-                            Les coordonnees sont reutilisees ensuite pour simplifier la creation des ruches.
+                            Les coordonnées sont réutilisées ensuite pour simplifier la création des ruches.
                         </p>
                     </div>
                 </form>
@@ -186,14 +186,14 @@ export function ApiariesTab({
 
             <SectionCard
                 title="Ruchers en place"
-                description="Liste et edition des sites."
+                description="Liste et édition des sites."
                 action={<StatusBadge variant="secondary">{formatCountLabel(apiaries.length, "site")}</StatusBadge>}
                 contentClassName="grid gap-4"
             >
                 {apiaries.length === 0 ? (
                     <EmptyState
-                        title="Aucun rucher enregistre"
-                        description="Cree ton premier site sur la carte."
+                        title="Aucun rucher enregistré"
+                        description="Crée ton premier site sur la carte."
                     />
                 ) : (
                     apiaries.map((apiary) => {
@@ -279,7 +279,7 @@ export function ApiariesTab({
                                                 />
                                                 {editingApiaryPosition ? (
                                                     <Marker position={editingApiaryPosition}>
-                                                        <Popup>{editingApiaryForm.name || "Rucher en edition"}</Popup>
+                                                        <Popup>{editingApiaryForm.name || "Rucher en édition"}</Popup>
                                                     </Marker>
                                                 ) : null}
                                                 <ApiaryLocationEvents onSelect={selectEditingApiaryLocation} />

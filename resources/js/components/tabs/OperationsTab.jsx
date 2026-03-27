@@ -11,28 +11,28 @@ export function OperationsTab({
     return (
         <section className="grid gap-6">
             <SectionCard
-                title="Base d exploitation"
-                description="Cree les sites puis les ruches."
+                title="Base d’exploitation"
+                description="Crée les sites puis les ruches."
                 action={<StatusBadge className="bg-primary/10 text-primary">Structure active</StatusBadge>}
                 contentClassName="grid gap-4 lg:grid-cols-3"
             >
                 <MetricCard
                     label="Ruchers"
                     value={stats.apiaryCount}
-                    hint="Nombre de sites actuellement cartographies."
+                    hint="Nombre de sites actuellement cartographiés."
                     icon={MapPinned}
                     accent="forest"
                 />
                 <MetricCard
                     label="Ruches"
                     value={stats.hiveCount}
-                    hint="Supports de production rattaches a un rucher."
+                    hint="Supports de production rattachés à un rucher."
                     icon={Hexagon}
                     accent="honey"
                 />
                 <div className="rounded-[24px] border border-border/70 bg-secondary/45 p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Ordre</p>
-                    <p className="mt-3 font-display text-2xl text-foreground">1. Situer. 2. Nommer. 3. Operer.</p>
+                    <p className="mt-3 font-display text-2xl text-foreground">1. Situer. 2. Nommer. 3. Opérer.</p>
                 </div>
             </SectionCard>
 

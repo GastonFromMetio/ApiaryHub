@@ -9,7 +9,6 @@ import {
     initialActionForm,
     initialApiaryForm,
     initialHiveForm,
-    initialReadingForm,
 } from './constants';
 import { AuthPanel } from './components/auth/AuthPanel';
 import { AppShell } from './components/layout/AppShell';
@@ -124,7 +123,6 @@ function App() {
     const [user, setUser] = useState(null);
     const [apiaries, setApiaries] = useState([]);
     const [hives, setHives] = useState([]);
-    const [readings, setReadings] = useState([]);
     const [actions, setActions] = useState([]);
     const [weatherByHive, setWeatherByHive] = useState({});
     const [adminDashboard, setAdminDashboard] = useState(null);
@@ -142,14 +140,9 @@ function App() {
 
     const [activeTab, setActiveTab] = useState('field');
     const [selectedApiaryFilter, setSelectedApiaryFilter] = useState('all');
-    const [selectedReadingsApiaryFilter, setSelectedReadingsApiaryFilter] = useState('all');
     const [selectedActionsApiaryFilter, setSelectedActionsApiaryFilter] = useState('all');
     const [hiveForm, setHiveForm] = useState(initialHiveForm);
     const [apiaryForm, setApiaryForm] = useState(initialApiaryForm);
-    const [readingForm, setReadingForm] = useState(() => ({
-        ...initialReadingForm,
-        recorded_at: toDatetimeValue(),
-    }));
     const [actionForm, setActionForm] = useState(() => ({
         ...initialActionForm,
         performed_at: toDatetimeValue(),
@@ -170,31 +163,22 @@ function App() {
 
     const stats = useMemo(() => ({
         hiveCount: hives.length,
-        readingCount: readings.length,
         actionCount: actions.length,
         apiaryCount: apiaries.length,
-    }), [hives, readings, actions, apiaries]);
+    }), [hives, actions, apiaries]);
 
     const recentActivity = useMemo(() => {
-        const readingItems = readings.map((reading) => ({
-            id: `reading-${reading.id}`,
-            kind: 'Mesure',
-            title: reading.hive?.name || `Ruche #${reading.hive_id}`,
-            timestamp: reading.recorded_at,
-            subtitle: `${reading.hive?.apiary_entity?.name || reading.hive?.apiary || 'Rucher non precise'} | Poids ${reading.weight_kg ?? '-'} kg`,
-        }));
-
         const actionItems = actions.map((action) => ({
             id: `action-${action.id}`,
             kind: 'Action',
             title: action.type || 'Intervention',
             timestamp: action.performed_at,
-            subtitle: `${action.hive?.name || `Ruche #${action.hive_id}`} | ${action.hive?.apiary_entity?.name || action.hive?.apiary || 'Rucher non precise'}`,
+            subtitle: `${action.hive?.name || `Ruche #${action.hive_id}`} | ${action.hive?.apiary_entity?.name || action.hive?.apiary || 'Rucher non précisé'}`,
         }));
 
-        return [...readingItems, ...actionItems]
+        return actionItems
             .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime());
-    }, [readings, actions]);
+    }, [actions]);
 
     const filteredHives = useMemo(() => {
         if (selectedApiaryFilter === 'all') {
@@ -205,16 +189,6 @@ function App() {
 
         return hives.filter((hive) => Number(hive.apiary_id) === selectedId);
     }, [hives, selectedApiaryFilter]);
-
-    const readingsHives = useMemo(() => {
-        if (selectedReadingsApiaryFilter === 'all') {
-            return hives;
-        }
-
-        const selectedId = Number(selectedReadingsApiaryFilter);
-
-        return hives.filter((hive) => Number(hive.apiary_id) === selectedId);
-    }, [hives, selectedReadingsApiaryFilter]);
 
     const actionsHives = useMemo(() => {
         if (selectedActionsApiaryFilter === 'all') {
@@ -355,7 +329,7 @@ function App() {
             return await apiRequest(path, options);
         } catch (apiError) {
             if (options.token && apiError?.status === 401) {
-                clearSessionState('Session expiree. Reconnecte-toi.');
+                clearSessionState('Session expirée. Reconnecte-toi.');
                 const handledError = new Error('Session expired');
                 handledError.code = SESSION_EXPIRED_CODE;
                 throw handledError;
@@ -365,22 +339,11 @@ function App() {
         }
     };
 
-    const fetchReadingsAndActions = async (authToken = token) => {
-        const [readingData, actionData] = await Promise.all([
-            apiRequestWithSession('/api/readings', { token: authToken }),
-            apiRequestWithSession('/api/actions', { token: authToken }),
-        ]);
-
-        setReadings(readingData);
-        setActions(actionData);
-    };
-
     useEffect(() => {
         if (!token) {
             setUser(null);
             setApiaries([]);
             setHives([]);
-            setReadings([]);
             setActions([]);
             setAdminDashboard(null);
             return;
@@ -392,17 +355,15 @@ function App() {
 
             try {
                 const me = await apiRequestWithSession('/api/user', { token });
-                const [apiaryData, hiveData, readingData, actionData] = await Promise.all([
+                const [apiaryData, hiveData, actionData] = await Promise.all([
                     apiRequestWithSession('/api/apiaries', { token }),
                     apiRequestWithSession('/api/hives', { token }),
-                    apiRequestWithSession('/api/readings', { token }),
                     apiRequestWithSession('/api/actions', { token }),
                 ]);
 
                 setUser(me);
                 setApiaries(apiaryData);
                 setHives(hiveData);
-                setReadings(readingData);
                 setActions(actionData);
                 setAdminDashboard(null);
                 const savedTab = localStorage.getItem(`${ACTIVE_TAB_STORAGE_PREFIX}${me.id}`);
@@ -415,9 +376,6 @@ function App() {
 
                 if (!hiveForm.apiary_id && apiaryData[0]) {
                     setHiveForm((previous) => ({ ...previous, apiary_id: String(apiaryData[0].id) }));
-                }
-                if (!readingForm.hive_id && hiveData[0]) {
-                    setReadingForm((previous) => ({ ...previous, hive_id: String(hiveData[0].id) }));
                 }
                 if (!actionForm.hive_id && hiveData[0]) {
                     setActionForm((previous) => ({ ...previous, hive_id: String(hiveData[0].id) }));
@@ -470,7 +428,7 @@ function App() {
         const emailVerified = url.searchParams.get('email_verified');
 
         if (emailVerified === '1') {
-            setInfo('Email confirme. Tu peux maintenant te connecter.');
+            setInfo('Email confirmé. Tu peux maintenant te connecter.');
             url.searchParams.delete('email_verified');
             window.history.replaceState({}, '', `${url.pathname}${url.search}`);
         }
@@ -568,18 +526,6 @@ function App() {
     }, [apiaries, selectedApiaryFilter]);
 
     useEffect(() => {
-        if (selectedReadingsApiaryFilter === 'all') {
-            return;
-        }
-
-        const exists = apiaries.some((apiary) => String(apiary.id) === String(selectedReadingsApiaryFilter));
-
-        if (!exists) {
-            setSelectedReadingsApiaryFilter('all');
-        }
-    }, [apiaries, selectedReadingsApiaryFilter]);
-
-    useEffect(() => {
         if (selectedActionsApiaryFilter === 'all') {
             return;
         }
@@ -603,10 +549,6 @@ function App() {
     }, [selectedApiaryFilter]);
 
     useEffect(() => {
-        setReadingForm((previous) => syncHiveSelection(previous, readingsHives));
-    }, [readingsHives]);
-
-    useEffect(() => {
         setActionForm((previous) => syncHiveSelection(previous, actionsHives));
     }, [actionsHives]);
 
@@ -621,7 +563,6 @@ function App() {
         setUser(null);
         setApiaries([]);
         setHives([]);
-        setReadings([]);
         setActions([]);
         setAdminDashboard(null);
         setWeatherByHive({});
@@ -629,7 +570,6 @@ function App() {
         setEditingHiveId(null);
         setActiveTab('field');
         setSelectedApiaryFilter('all');
-        setSelectedReadingsApiaryFilter('all');
         setSelectedActionsApiaryFilter('all');
         setSelectedAdminApiaryFilter('all');
         setInfo(message);
@@ -651,7 +591,8 @@ function App() {
 
             setApiaries(apiaryData);
             setHives(hiveData);
-            await fetchReadingsAndActions(token);
+            const actionData = await apiRequestWithSession('/api/actions', { token });
+            setActions(actionData);
 
             if (user?.is_admin) {
                 setAdminLoading(true);
@@ -712,7 +653,7 @@ function App() {
                 setToken(payload.token);
                 setTokenExpiration(payload.expires_at || null);
                 setActiveTab('field');
-                setInfo(payload.message || 'Connexion reussie.');
+                setInfo(payload.message || 'Connexion réussie.');
                 return;
             }
 
@@ -733,7 +674,7 @@ function App() {
                     password: '',
                     password_confirmation: '',
                 }));
-                setInfo('Compte cree. Verifie ton email, puis connecte-toi.');
+                setInfo('Compte créé. Vérifie ton email, puis connecte-toi.');
                 return;
             }
 
@@ -743,7 +684,7 @@ function App() {
                     body: { email: authForm.email },
                 });
 
-                setInfo('Si cet email existe, un lien de reinitialisation a ete envoye.');
+                setInfo('Si cet email existe, un lien de réinitialisation a été envoyé.');
                 return;
             }
 
@@ -769,7 +710,7 @@ function App() {
                     password_confirmation: '',
                     reset_token: '',
                 }));
-                setInfo('Mot de passe reinitialise. Tu peux maintenant te connecter.');
+                setInfo('Mot de passe réinitialisé. Tu peux maintenant te connecter.');
             }
         } catch (authError) {
             setError(authError.message);
@@ -780,7 +721,7 @@ function App() {
 
     const resendVerificationEmail = async () => {
         if (!authForm.email) {
-            setError('Saisis ton email pour renvoyer la verification.');
+            setError('Saisis ton email pour renvoyer la vérification.');
             return;
         }
 
@@ -792,7 +733,7 @@ function App() {
                 method: 'POST',
                 body: { email: authForm.email },
             });
-            setInfo('Si ce compte existe et n\'est pas verifie, un email a ete renvoye.');
+            setInfo('Si ce compte existe et n’est pas vérifié, un email a été renvoyé.');
         } catch (apiError) {
             setError(apiError.message);
         } finally {
@@ -813,7 +754,7 @@ function App() {
                 method: 'POST',
                 body: { email: user.email },
             });
-            setInfo('Email de verification renvoye.');
+            setInfo('Email de vérification renvoyé.');
         } catch (apiError) {
             setError(apiError.message);
         } finally {
@@ -835,9 +776,9 @@ function App() {
 
             if (me?.email_verified_at) {
                 setVerificationNoticeDismissed(false);
-                setInfo('Email confirme. Merci.');
+                setInfo('Email confirmé. Merci.');
             } else {
-                setInfo('Email toujours en attente de verification.');
+                setInfo('Email toujours en attente de vérification.');
                 setVerificationNoticeDismissed(false);
             }
         } catch (apiError) {
@@ -860,7 +801,7 @@ function App() {
             // Ignore logout errors if token is already invalid.
         }
 
-        clearSessionState('Session fermee.');
+        clearSessionState('Session fermée.');
     };
 
     const updateAccount = async (payload) => {
@@ -883,7 +824,7 @@ function App() {
             }
 
             setUser(updatedUser);
-            setInfo(responsePayload?.session_rotated ? 'Compte mis a jour. Session renouvelee.' : 'Compte mis a jour.');
+            setInfo(responsePayload?.session_rotated ? 'Compte mis à jour. Session renouvelée.' : 'Compte mis à jour.');
             return true;
         } catch (updateError) {
             if (!isSessionExpiredError(updateError)) {
@@ -907,7 +848,7 @@ function App() {
                 body: payload,
             });
 
-            clearSessionState('Compte supprime. Toutes les donnees associees ont ete effacees.');
+            clearSessionState('Compte supprimé. Toutes les données associées ont été effacées.');
             return true;
         } catch (deleteError) {
             if (!isSessionExpiredError(deleteError)) {
@@ -1030,9 +971,6 @@ function App() {
             if (String(selectedApiaryFilter) === String(apiaryId)) {
                 setSelectedApiaryFilter('all');
             }
-            if (String(selectedReadingsApiaryFilter) === String(apiaryId)) {
-                setSelectedReadingsApiaryFilter('all');
-            }
             if (String(selectedActionsApiaryFilter) === String(apiaryId)) {
                 setSelectedActionsApiaryFilter('all');
             }
@@ -1059,14 +997,14 @@ function App() {
         event.preventDefault();
 
         if (apiaries.length === 0) {
-            setError('Cree d\'abord un rucher avant d\'ajouter des ruches.');
+            setError('Crée d’abord un rucher avant d’ajouter des ruches.');
             return false;
         }
 
         const apiaryId = Number(hiveForm.apiary_id);
 
         if (!apiaryId || Number.isNaN(apiaryId)) {
-            setError('Selectionne un rucher pour la ruche.');
+            setError('Sélectionne un rucher pour la ruche.');
             return false;
         }
 
@@ -1089,7 +1027,7 @@ function App() {
                 ...initialHiveForm,
                 apiary_id: String(apiaryId),
             });
-            setInfo('Ruche creee.');
+            setInfo('Ruche créée.');
             await refreshAll();
             return true;
         } catch (createError) {
@@ -1120,7 +1058,7 @@ function App() {
         const apiaryId = Number(editingHiveForm.apiary_id);
 
         if (!apiaryId || Number.isNaN(apiaryId)) {
-            setError('Selectionne un rucher valide avant de sauver.');
+            setError('Sélectionne un rucher valide avant de sauver.');
             return;
         }
 
@@ -1192,42 +1130,6 @@ function App() {
         }
     };
 
-    const createReading = async (event) => {
-        event.preventDefault();
-        setBusy(true);
-        setError('');
-
-        try {
-            await apiRequestWithSession('/api/readings', {
-                method: 'POST',
-                token,
-                body: {
-                    ...readingForm,
-                    hive_id: Number(readingForm.hive_id),
-                    weight_kg: parseNumber(readingForm.weight_kg),
-                    temperature_c: parseNumber(readingForm.temperature_c),
-                    humidity_percent: parseNumber(readingForm.humidity_percent),
-                    activity_index: parseNumber(readingForm.activity_index),
-                    recorded_at: new Date(readingForm.recorded_at).toISOString(),
-                },
-            });
-
-            setReadingForm((previous) => ({
-                ...initialReadingForm,
-                hive_id: previous.hive_id,
-                recorded_at: toDatetimeValue(),
-            }));
-            setInfo('Releve enregistre.');
-
-            await refreshAll();
-        } catch (createError) {
-            if (!isSessionExpiredError(createError)) {
-                setError(createError.message);
-            }
-            setBusy(false);
-        }
-    };
-
     const createAction = async (event) => {
         event.preventDefault();
         setBusy(true);
@@ -1249,7 +1151,7 @@ function App() {
                 hive_id: previous.hive_id,
                 performed_at: toDatetimeValue(),
             }));
-            setInfo('Intervention enregistree.');
+            setInfo('Intervention enregistrée.');
 
             await refreshAll();
         } catch (createError) {
@@ -1278,7 +1180,7 @@ function App() {
 
     const currentTabDescription = useMemo(() => {
         if (activeTab === 'field') {
-            return 'Mesures et actions.';
+            return 'Interventions et suivi.';
         }
 
         if (activeTab === 'apiaries') {
@@ -1286,18 +1188,18 @@ function App() {
         }
 
         if (activeTab === 'journal') {
-            return 'Historique des entrees.';
+            return 'Historique des interventions.';
         }
 
         if (activeTab === 'compliance') {
-            return 'Suivi et registre.';
+            return 'Section en cours de développement.';
         }
 
         if (activeTab === ADMIN_TAB.id) {
-            return 'Comptes, ruchers, activite.';
+            return 'Comptes, ruchers, activité.';
         }
 
-        return 'Profil et securite.';
+        return 'Profil et sécurité.';
     }, [activeTab]);
 
     const renderContent = () => {
@@ -1309,12 +1211,6 @@ function App() {
                     apiaries={apiaries}
                     hives={hives}
                     recentActivity={recentActivity}
-                    readingForm={readingForm}
-                    setReadingForm={setReadingForm}
-                    selectedReadingsApiaryFilter={selectedReadingsApiaryFilter}
-                    setSelectedReadingsApiaryFilter={setSelectedReadingsApiaryFilter}
-                    readingsHives={readingsHives}
-                    createReading={createReading}
                     actionForm={actionForm}
                     setActionForm={setActionForm}
                     selectedActionsApiaryFilter={selectedActionsApiaryFilter}
@@ -1379,7 +1275,6 @@ function App() {
                 <JournalTab
                     apiaries={apiaries}
                     hives={hives}
-                    readings={readings}
                     actions={actions}
                     onOpenField={() => navigateToTab('field')}
                 />
@@ -1389,10 +1284,7 @@ function App() {
         if (activeTab === 'compliance') {
             return (
                 <ComplianceTab
-                    hives={hives}
-                    actions={actions}
                     onOpenField={() => navigateToTab('field')}
-                    onOpenJournal={() => navigateToTab('journal')}
                 />
             );
         }
@@ -1403,12 +1295,6 @@ function App() {
                     apiaries={apiaries}
                     hives={hives}
                     recentActivity={recentActivity}
-                    readingForm={readingForm}
-                    setReadingForm={setReadingForm}
-                    selectedReadingsApiaryFilter={selectedReadingsApiaryFilter}
-                    setSelectedReadingsApiaryFilter={setSelectedReadingsApiaryFilter}
-                    readingsHives={readingsHives}
-                    createReading={createReading}
                     actionForm={actionForm}
                     setActionForm={setActionForm}
                     selectedActionsApiaryFilter={selectedActionsApiaryFilter}
@@ -1444,9 +1330,9 @@ function App() {
     };
 
     return (
-        <main className="min-h-svh overflow-x-clip px-4 py-4 lg:px-6">
+        <main className="min-h-svh overflow-x-clip">
             {(error || info) && (
-                <div className="fixed right-4 top-4 z-[80] grid w-[min(92vw,26rem)] gap-3">
+                <div className="fixed right-4 top-4 z-80 grid w-[min(92vw,26rem)] gap-3">
                     {error ? (
                         <div
                             className="radius-subpanel border border-destructive/25 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(146,46,32,0.55)] backdrop-blur"
@@ -1469,7 +1355,7 @@ function App() {
             )}
 
             {!token ? (
-                <div className="mx-auto max-w-[1600px]">
+                <div className="mx-auto max-w-400 ">
                     <AuthPanel
                         authMode={authMode}
                         setAuthMode={setAuthMode}

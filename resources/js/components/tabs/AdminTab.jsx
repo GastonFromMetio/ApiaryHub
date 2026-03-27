@@ -34,7 +34,7 @@ function BarChart({ rows = [] }) {
                         <div key={row.day} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                             <div
                                 className="flex h-48 w-full items-end justify-center gap-1 rounded-[18px] border border-border/50 bg-background/80 px-2 py-3"
-                                title={`${row.day}: ${row.total} activites`}
+                                title={`${row.day}: ${row.total} activités`}
                             >
                                 <span className="w-3 rounded-full bg-primary/75" style={{ height: `${readingsHeight}%` }} />
                                 <span className="w-3 rounded-full bg-accent/85" style={{ height: `${actionsHeight}%` }} />
@@ -46,7 +46,7 @@ function BarChart({ rows = [] }) {
                 })}
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <StatusBadge className="bg-primary/10 text-primary">Releves</StatusBadge>
+                <StatusBadge className="bg-primary/10 text-primary">Relevés</StatusBadge>
                 <StatusBadge className="bg-accent/20 text-accent-foreground">Interventions</StatusBadge>
                 <StatusBadge variant="outline">Total</StatusBadge>
             </div>
@@ -71,15 +71,15 @@ export function AdminTab({
     return (
         <section className="grid gap-6">
             <SectionCard
-                title="Vue d ensemble"
-                description="Comptes, ruchers, activite."
+                title="Vue d’ensemble"
+                description="Comptes, ruchers, activité."
                 action={
                     <div className="w-full min-w-56 max-w-sm">
                         <NativeSelect value={selectedApiaryFilter} onChange={(event) => onApiaryFilterChange(event.target.value)}>
                             <option value="all">Tous les ruchers</option>
                             {apiaryOptions.map((apiary) => (
                                 <option key={apiary.id} value={String(apiary.id)}>
-                                    {apiary.name} ({apiary.user?.email || "sans proprietaire"})
+                                    {apiary.name} ({apiary.user?.email || "sans propriétaire"})
                                 </option>
                             ))}
                         </NativeSelect>
@@ -88,21 +88,21 @@ export function AdminTab({
                 contentClassName="grid gap-4 lg:grid-cols-5"
             >
                 <MetricCard label="Comptes" value={stats.accounts ?? 0} hint="Tous les profils." icon={Users} accent="forest" />
-                <MetricCard label="Admins" value={stats.admins ?? 0} hint="Acces eleves." icon={ShieldCheck} accent="clay" />
-                <MetricCard label="Ruchers" value={stats.apiaries ?? 0} hint="Sites indexes." icon={MapPinned} accent="honey" />
+                <MetricCard label="Admins" value={stats.admins ?? 0} hint="Accès élevés." icon={ShieldCheck} accent="clay" />
+                <MetricCard label="Ruchers" value={stats.apiaries ?? 0} hint="Sites indexés." icon={MapPinned} accent="honey" />
                 <MetricCard label="Ruches" value={stats.hives ?? 0} hint="Ruches du filtre." icon={Hexagon} accent="sky" />
-                <MetricCard label="Activite" value={(stats.readings ?? 0) + (stats.actions ?? 0)} hint="Mesures + actions." icon={Activity} accent="forest" />
+                <MetricCard label="Activité" value={(stats.readings ?? 0) + (stats.actions ?? 0)} hint="Mesures + actions." icon={Activity} accent="forest" />
             </SectionCard>
 
             <SectionCard
-                title="Utilisateurs et activite"
+                title="Utilisateurs et activité"
                 description="Comptes et volumes."
                 action={<StatusBadge variant="secondary">{formatCountLabel(people.length, "personne")}</StatusBadge>}
             >
                 {people.length === 0 ? (
                     <EmptyState
                         title="Aucune personne pour ce filtre"
-                        description="Elargis le filtre rucher pour retrouver les comptes et leurs volumes d activite."
+                        description="Élargis le filtre rucher pour retrouver les comptes et leurs volumes d’activité."
                     />
                 ) : (
                     <div className="overflow-hidden rounded-[24px] border border-border/70">
@@ -111,12 +111,12 @@ export function AdminTab({
                                 <TableRow>
                                     <TableHead>Nom</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead>Role</TableHead>
+                                    <TableHead>Rôle</TableHead>
                                     <TableHead>Ruchers</TableHead>
                                     <TableHead>Ruches</TableHead>
-                                    <TableHead>Releves</TableHead>
+                                    <TableHead>Relevés</TableHead>
                                     <TableHead>Interventions</TableHead>
-                                    <TableHead>Derniere activite</TableHead>
+                                    <TableHead>Dernière activité</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -140,21 +140,21 @@ export function AdminTab({
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                 <SectionCard
-                    title="Activite des 7 derniers jours"
+                    title="Activité des 7 derniers jours"
                     description="Mesures, actions, total."
                 >
                     <BarChart rows={activityByDay} />
                 </SectionCard>
 
                 <SectionCard
-                    title="Flux recent"
-                    description="Dernieres creations."
+                    title="Flux récent"
+                    description="Dernières créations."
                     contentClassName="grid gap-4"
                 >
                     {recentFeed.length === 0 ? (
                         <EmptyState
-                            title="Aucune creation recente"
-                            description="Aucune mesure ni intervention recente n est disponible sur le filtre courant."
+                            title="Aucune création récente"
+                            description="Aucune mesure ni intervention récente n’est disponible sur le filtre courant."
                         />
                     ) : (
                         recentFeed.map((entry) => (
@@ -164,7 +164,7 @@ export function AdminTab({
                             >
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <StatusBadge className={entry.type ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
-                                        {entry.type ? "Intervention" : "Releve"}
+                                        {entry.type ? "Intervention" : "Relevé"}
                                     </StatusBadge>
                                     <p className="text-sm text-muted-foreground">{formatDate(entry.created_at)}</p>
                                 </div>
@@ -172,7 +172,7 @@ export function AdminTab({
                                     {entry.type ? entry.type : entry.hive?.name || `Ruche #${entry.hive_id}`}
                                 </h3>
                                 <p className="mt-2 text-sm text-muted-foreground">
-                                    {entry.hive?.apiary_entity?.name || entry.hive?.apiaryEntity?.name || "Rucher non defini"}
+                                    {entry.hive?.apiary_entity?.name || entry.hive?.apiaryEntity?.name || "Rucher non défini"}
                                 </p>
                                 <p className="mt-2 text-sm text-muted-foreground">{entry.hive?.user?.email || "-"}</p>
                             </article>

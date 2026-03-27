@@ -1,9 +1,9 @@
 import {
     ArrowRight,
     ChartNoAxesCombined,
+    FileText,
     KeyRound,
     MapPinned,
-    ShieldCheck,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,35 +21,35 @@ const AUTH_FEATURES = [
     },
     {
         title: "Journal",
-        description: "Releves et actions.",
+        description: "Historique des interventions.",
         icon: ChartNoAxesCombined,
     },
     {
-        title: "Conformite",
-        description: "Verification et registre.",
-        icon: ShieldCheck,
+        title: "Documents",
+        description: "Module à venir.",
+        icon: FileText,
     },
 ];
 
 const TITLES = {
-    login: "Connexion securisee",
-    register: "Creer un espace de pilotage",
-    forgot: "Retrouver l acces",
-    reset: "Definir un nouveau mot de passe",
-    "verify-pending": "Verification d email en attente",
+    login: "Connexion sécurisée",
+    register: "Créer un espace de pilotage",
+    forgot: "Retrouver l’accès",
+    reset: "Définir un nouveau mot de passe",
+    "verify-pending": "Vérification d’email en attente",
 };
 
 const DESCRIPTIONS = {
-    login: "Accede a ton espace.",
-    register: "Cree ton espace de suivi.",
-    forgot: "On t envoie un lien.",
+    login: "Accède à ton espace.",
+    register: "Crée ton espace de suivi.",
+    forgot: "On t’envoie un lien.",
     reset: "Choisis un nouveau mot de passe.",
     "verify-pending": "Confirme ton email pour activer le compte.",
 };
 
 const SUBMIT_LABELS = {
     login: "Se connecter",
-    register: "Creer mon compte",
+    register: "Créer mon compte",
     forgot: "Envoyer le lien",
     reset: "Enregistrer le nouveau mot de passe",
 };
@@ -86,7 +86,7 @@ export function AuthPanel({
                                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary-foreground/60">
                                     ApiaryHub platform
                                 </p>
-                                <p className="text-sm text-primary-foreground/78">Ops cockpit pour l activite apicole</p>
+                                <p className="text-sm text-primary-foreground/78">Ops cockpit pour l’activité apicole</p>
                             </div>
                         </div>
 
@@ -99,7 +99,7 @@ export function AuthPanel({
                                 Pilote tes ruchers simplement.
                             </h1>
                             <p className="max-w-2xl text-base leading-8 text-primary-foreground/76">
-                                Carte, ruches, releves et actions au meme endroit.
+                                Carte, ruches, journal et documents au même endroit.
                             </p>
                         </div>
                     </div>
@@ -131,7 +131,7 @@ export function AuthPanel({
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                                    Acces securise
+                                    Accès sécurisé
                                 </p>
                                 <CardTitle className="mt-2 font-display text-3xl text-foreground">
                                     {TITLES[authMode] || TITLES.login}
@@ -164,14 +164,14 @@ export function AuthPanel({
                             {authMode === "verify-pending" ? (
                                 <div className="radius-panel space-y-4 border border-border bg-secondary/45 p-5">
                                     <div className="space-y-2">
-                                        <h3 className="font-display text-2xl text-foreground">Encore une etape</h3>
+                                        <h3 className="font-display text-2xl text-foreground">Encore une étape</h3>
                                         <p className="text-sm leading-6 text-muted-foreground">
-                                            Ouvre l email envoye a <strong>{authForm.email}</strong> puis confirme le compte.
+                                            Ouvre l’email envoyé à <strong>{authForm.email}</strong> puis confirme le compte.
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-3 sm:flex-row">
                                         <Button type="button" className="rounded-xl" onClick={resendVerificationEmail} disabled={busy}>
-                                            Renvoyer l email
+                                            Renvoyer l’email
                                         </Button>
                                         <Button
                                             type="button"
@@ -180,7 +180,7 @@ export function AuthPanel({
                                             onClick={() => setAuthMode("login")}
                                             disabled={busy}
                                         >
-                                            Aller a la connexion
+                                            Aller à la connexion
                                             <ArrowRight className="size-4" />
                                         </Button>
                                     </div>
@@ -251,7 +251,7 @@ export function AuthPanel({
                                                 onClick={() => setAuthMode("forgot")}
                                                 disabled={busy}
                                             >
-                                                Mot de passe oublie ?
+                                                Mot de passe oublié ?
                                             </Button>
                                         ) : null}
 

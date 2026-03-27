@@ -31,7 +31,7 @@ export function HivesList({
     return (
         <SectionCard
             title="Ruches"
-            description="Filtre et gere les ruches."
+            description="Filtre et gère les ruches."
             action={<StatusBadge variant="secondary">{hives.length} / {totalHives}</StatusBadge>}
             contentClassName="grid gap-4"
         >
@@ -72,7 +72,7 @@ export function HivesList({
             {hives.length === 0 ? (
                 <EmptyState
                     title="Aucune ruche ne correspond aux filtres"
-                    description="Ajuste les filtres ou cree une ruche."
+                    description="Ajuste les filtres ou crée une ruche."
                 />
             ) : (
                 hives.map((hive) => {
@@ -159,7 +159,7 @@ export function HivesList({
                                                 </StatusBadge>
                                             </div>
                                             <p className="text-sm text-muted-foreground">
-                                                {hive.apiary_entity?.name || hive.apiary || "Rucher non precise"}
+                                                {hive.apiary_entity?.name || hive.apiary || "Rucher non précisé"}
                                             </p>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export function HivesList({
                                             </Button>
                                             <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => fetchWeather(hive.id)} disabled={busy}>
                                                 <CloudSun className="size-4" />
-                                                Meteo locale
+                                                Météo locale
                                             </Button>
                                             <Button
                                                 type="button"

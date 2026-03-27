@@ -78,7 +78,7 @@ export function AccountTab({
             return;
         }
 
-        if (!window.confirm("Cette action est definitive. Supprimer le compte et toutes les donnees ?")) {
+        if (!window.confirm("Cette action est définitive. Supprimer le compte et toutes les données ?")) {
             return;
         }
 
@@ -146,7 +146,7 @@ export function AccountTab({
                             Enregistrer mes informations
                         </Button>
                         <p className="text-sm text-muted-foreground">
-                            Les changements d email ou de mot de passe demandent maintenant le mot de passe actuel et renouvellent la session.
+                            Les changements d’email ou de mot de passe demandent maintenant le mot de passe actuel et renouvellent la session.
                         </p>
                     </div>
                 </form>
@@ -154,7 +154,7 @@ export function AccountTab({
 
             <SectionCard
                 title="Suppression du compte"
-                description="Suppression definitive."
+                description="Suppression définitive."
                 action={<StatusBadge className="bg-destructive/10 text-destructive">Zone sensible</StatusBadge>}
             >
                 <form className="grid gap-5" onSubmit={submitDelete}>
@@ -168,8 +168,8 @@ export function AccountTab({
                         />
                     </FieldBlock>
                     <FieldBlock
-                        label="Ecris SUPPRIMER pour confirmer"
-                        hint="Cette verification limite les suppressions accidentelles."
+                        label="Écris SUPPRIMER pour confirmer"
+                        hint="Cette vérification limite les suppressions accidentelles."
                     >
                         <Input
                             value={deleteForm.confirmation}
@@ -179,7 +179,7 @@ export function AccountTab({
                         />
                     </FieldBlock>
                     <Button className="rounded-xl" variant="destructive" type="submit" disabled={busy}>
-                        Supprimer definitivement mon compte
+                        Supprimer définitivement mon compte
                     </Button>
                 </form>
             </SectionCard>
