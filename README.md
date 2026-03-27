@@ -6,12 +6,13 @@ ApiaryHub V1 inclut:
 - Releves capteurs et interventions
 - Meteo par ruche (`/api/hives/{id}/weather`)
 - Frontend React + Leaflet
-- Stack Docker (app + MySQL + Redis)
+- Stack Docker locale (app + worker + MySQL + Redis + Mailpit)
 
 ## Demarrage local
 Depuis la racine du projet:
 
 ```bash
+cp .env.example .env
 docker compose up --build -d
 ```
 
@@ -25,138 +26,57 @@ Config Nginx locale (optionnelle):
 - `apiaryhub-worker` -> worker Laravel pour les emails et jobs asynchrones
 - `apiaryhub-mysql` -> MySQL 8.4
 - `apiaryhub-redis` -> Redis 7
+- `apiaryhub-mailpit` -> SMTP local + interface web sur [http://127.0.0.1:8025](http://127.0.0.1:8025)
 
-## Mise en production sur `apiaryhub.fr` (Ubuntu VPS)
+## Deploiement Dokploy
 
-### 1) Prerequis serveur
+Le deploiement cible est Dokploy via `docker-compose.dokploy.yml`.
+Le fichier `deploy/nginx/apiaryhub.server.conf` n'est pas necessaire dans ce mode.
 
-Installer Docker Engine + Compose plugin:
+Variables principales a fournir dans Dokploy:
 
-```bash
-sudo apt update
-sudo apt install -y ca-certificates curl gnupg
-
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://apiaryhub.fr
+APP_AUTO_SEED=false
+SESSION_SECURE_COOKIE=true
+SESSION_DOMAIN=apiaryhub.fr
+SANCTUM_STATEFUL_DOMAINS=apiaryhub.fr,www.apiaryhub.fr
+TRUSTED_PROXIES=*
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=apiaryhub
+DB_USERNAME=apiaryhub
+DB_PASSWORD=mot_de_passe_fort
+MYSQL_ROOT_PASSWORD=mot_de_passe_root_fort
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+MAIL_QUEUE=mail
+QUEUE_WORKER_QUEUE=mail,default
+REDIS_CLIENT=phpredis
+REDIS_HOST=redis
+REDIS_PORT=6379
 ```
 
-Installer Nginx + Certbot:
+Note importante:
+- la stack Docker utilise toujours MySQL et Redis dans les conteneurs, meme si ton `.env` local hors Docker est configure autrement
+- en local, le compose reutilise aussi `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` pour rester compatible avec les volumes deja initialises
+- si tu veux separer completement les identifiants Docker de ton `.env` local, utilise `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
 
-```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
-```
-
-Verifier:
-
-```bash
-docker --version
-docker compose version
-nginx -v
-certbot --version
-```
-
-### 2) DNS
-
-Creer des enregistrements `A`:
+DNS attendu:
 - `apiaryhub.fr` -> IP publique du VPS
 - `www.apiaryhub.fr` -> IP publique du VPS
 
-Validation:
-
-```bash
-dig +short apiaryhub.fr
-```
-
-### 3) Configuration applicative Docker/Laravel
-
-Dans `docker-compose.yml`, configurer le service `app` en mode production:
-
-```yaml
-environment:
-  APP_ENV: production
-  APP_DEBUG: "false"
-  APP_URL: https://apiaryhub.fr
-  APP_AUTO_SEED: "false"
-  SESSION_SECURE_COOKIE: "true"
-  SESSION_DOMAIN: apiaryhub.fr
-  SANCTUM_STATEFUL_DOMAINS: apiaryhub.fr,www.apiaryhub.fr
-  DB_CONNECTION: mysql
-  DB_HOST: mysql
-  DB_PORT: 3306
-  DB_DATABASE: apiaryhub
-  DB_USERNAME: apiaryhub
-  DB_PASSWORD: "mot_de_passe_fort"
-  MYSQL_ROOT_PASSWORD: "mot_de_passe_root_fort"
-  CACHE_STORE: redis
-  SESSION_DRIVER: redis
-  QUEUE_CONNECTION: redis
-  MAIL_QUEUE: mail
-  QUEUE_WORKER_QUEUE: mail
-  REDIS_CLIENT: phpredis
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-```
-
 Recommandations:
 - utiliser des mots de passe forts (DB, root DB)
-- ne pas exposer MySQL/Redis publiquement en prod
+- laisser l'app uniquement derriere le proxy Dokploy
+- ne pas exposer MySQL/Redis publiquement
 - garder `APP_DEBUG=false`
-- garder `ALLOW_DEMO_SEED=false`
-
-### 4) Configuration Nginx serveur
-
-Fichier serveur:
-- `deploy/nginx/apiaryhub.server.conf`
-
-Installation:
-
-```bash
-cd ~/ApiaryHub
-sudo cp deploy/nginx/apiaryhub.server.conf /etc/nginx/conf.d/apiaryhub.conf
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### 5) Certificat TLS Let’s Encrypt
-
-```bash
-sudo certbot --nginx -d apiaryhub.fr -d www.apiaryhub.fr --redirect
-```
-
-### 6) Lancement en production
-
-```bash
-cd ~/ApiaryHub
-docker compose up --build -d
-docker compose ps
-docker compose logs --tail=100
-```
-
-### 7) Commandes utiles de maintenance
-
-```bash
-# Redemarrer les services
-docker compose restart
-
-# Voir les logs en continu
-docker compose logs -f
-
-# Mettre a jour le code puis reconstruire
-git pull
-docker compose up --build -d
-
-# Etat certificat
-sudo certbot certificates
-```
+- configurer SMTP/Brevo dans Dokploy si tu actives les emails publics
+- garder `TRUSTED_PROXIES=*` uniquement dans le compose Dokploy
 
 ## Endpoints API principaux
 - `POST /api/auth/register`
@@ -178,20 +98,20 @@ sudo certbot certificates
 - Tant que l'email n'est pas verifie, la connexion reste possible mais un rappel utilisateur est affiche pour finaliser la verification.
 - Le flux `mot de passe oublie` envoie un lien de reinitialisation par email.
 - En local, les emails passent par Mailpit.
-- Interface Mailpit: [http://localhost:8025](http://localhost:8025)
+- Interface Mailpit: [http://127.0.0.1:8025](http://127.0.0.1:8025)
 
 ## Configuration Brevo (SMTP)
 Pour envoyer les emails de verification et de reset via Brevo:
 
 ```env
 MAIL_MAILER=smtp
-MAIL_SCHEME=tls
+MAIL_SCHEME=smtp
 MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
 MAIL_USERNAME=your-brevo-login
 MAIL_PASSWORD=your-brevo-smtp-key
 MAIL_QUEUE=mail
-QUEUE_WORKER_QUEUE=mail
+QUEUE_WORKER_QUEUE=mail,default
 MAIL_FROM_ADDRESS=noreply@apiaryhub.fr
 MAIL_FROM_NAME=ApiaryHub
 APP_URL=https://apiaryhub.fr
@@ -201,4 +121,4 @@ Notes:
 - `MAIL_PASSWORD` doit etre la cle SMTP Brevo (pas ton mot de passe de connexion Brevo).
 - `MAIL_FROM_ADDRESS` doit etre une adresse expediteur validee dans Brevo.
 - `APP_URL` doit pointer vers l'URL publique de ton application pour que les liens email soient corrects.
-- Apres modification des variables: `docker compose up -d --build app`.
+- Apres modification des variables: `docker compose up -d --build app worker`.

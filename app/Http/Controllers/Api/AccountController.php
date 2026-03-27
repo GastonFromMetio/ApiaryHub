@@ -21,6 +21,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         $emailHasChanged = false;
+        $passwordHasChanged = false;
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -34,20 +35,25 @@ class AccountController extends Controller
             'password' => ['nullable', 'confirmed', Password::min(8)],
         ]);
 
-        if (! empty($validated['password'] ?? null)) {
+        $emailHasChanged = $user->email !== $validated['email'];
+        $passwordHasChanged = ! empty($validated['password'] ?? null);
+        $requiresCredentialConfirmation = $emailHasChanged || $passwordHasChanged;
+
+        if ($requiresCredentialConfirmation) {
             if (empty($validated['current_password']) || ! Hash::check($validated['current_password'], $user->password)) {
                 return response()->json([
                     'message' => 'Current password is invalid.',
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
+        }
 
+        if ($passwordHasChanged) {
             $user->password = $validated['password'];
         }
 
         $user->name = $validated['name'];
 
-        if ($user->email !== $validated['email']) {
-            $emailHasChanged = true;
+        if ($emailHasChanged) {
             $user->email = $validated['email'];
             $user->email_verified_at = null;
         }
@@ -62,7 +68,22 @@ class AccountController extends Controller
             }
         }
 
-        return response()->json($user->fresh());
+        $responsePayload = [
+            'user' => $user->fresh(),
+            'session_rotated' => false,
+        ];
+
+        if ($requiresCredentialConfirmation) {
+            $user->tokens()->delete();
+            $issuedToken = $user->issueApiToken();
+
+            $responsePayload['token'] = $issuedToken->plainTextToken;
+            $responsePayload['token_type'] = 'Bearer';
+            $responsePayload['expires_at'] = $issuedToken->accessToken->expires_at?->toISOString();
+            $responsePayload['session_rotated'] = true;
+        }
+
+        return response()->json($responsePayload);
     }
 
     public function destroy(Request $request)

@@ -11,6 +11,8 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
+SYNC_ENV_FILE="${SYNC_ENV_FILE:-false}"
+
 set_env_key() {
   key="$1"
   value="$2"
@@ -18,45 +20,63 @@ set_env_key() {
     return 0
   fi
 
-  if grep -q "^${key}=" .env; then
-    sed -i "s|^${key}=.*|${key}=${value}|" .env
-  else
-    printf '\n%s=%s\n' "$key" "$value" >> .env
-  fi
+  php -r '
+$file = ".env";
+$key = $argv[1];
+$value = $argv[2];
+$lines = file_exists($file) ? file($file, FILE_IGNORE_NEW_LINES) : [];
+$prefix = $key . "=";
+$updated = false;
+
+foreach ($lines as $index => $line) {
+    if (str_starts_with($line, $prefix)) {
+        $lines[$index] = $prefix . $value;
+        $updated = true;
+        break;
+    }
 }
 
-# Keep runtime infra settings aligned with Docker Compose environment.
-set_env_key DB_HOST "${DB_HOST:-}"
-set_env_key DB_PORT "${DB_PORT:-}"
-set_env_key DB_DATABASE "${DB_DATABASE:-}"
-set_env_key DB_USERNAME "${DB_USERNAME:-}"
-set_env_key DB_PASSWORD "${DB_PASSWORD:-}"
-set_env_key APP_ENV "${APP_ENV:-}"
-set_env_key APP_DEBUG "${APP_DEBUG:-}"
-set_env_key APP_URL "${APP_URL:-}"
-set_env_key APP_AUTO_SEED "${APP_AUTO_SEED:-}"
-set_env_key ALLOW_DEMO_SEED "${ALLOW_DEMO_SEED:-}"
-set_env_key SESSION_SECURE_COOKIE "${SESSION_SECURE_COOKIE:-}"
-set_env_key SESSION_DOMAIN "${SESSION_DOMAIN:-}"
-set_env_key SANCTUM_STATEFUL_DOMAINS "${SANCTUM_STATEFUL_DOMAINS:-}"
-set_env_key CACHE_STORE "${CACHE_STORE:-}"
-set_env_key SESSION_DRIVER "${SESSION_DRIVER:-}"
-set_env_key QUEUE_CONNECTION "${QUEUE_CONNECTION:-}"
-set_env_key REDIS_CLIENT "${REDIS_CLIENT:-}"
-set_env_key REDIS_HOST "${REDIS_HOST:-}"
-set_env_key REDIS_PORT "${REDIS_PORT:-}"
-set_env_key MAIL_QUEUE "${MAIL_QUEUE:-}"
-set_env_key MAIL_MAILER "${MAIL_MAILER:-}"
-set_env_key MAIL_SCHEME "${MAIL_SCHEME:-}"
-set_env_key MAIL_ENCRYPTION "${MAIL_ENCRYPTION:-}"
-set_env_key MAIL_HOST "${MAIL_HOST:-}"
-set_env_key MAIL_PORT "${MAIL_PORT:-}"
-set_env_key MAIL_USERNAME "${MAIL_USERNAME:-}"
-set_env_key MAIL_PASSWORD "${MAIL_PASSWORD:-}"
-set_env_key MAIL_EHLO_DOMAIN "${MAIL_EHLO_DOMAIN:-}"
-set_env_key MAIL_FROM_ADDRESS "${MAIL_FROM_ADDRESS:-}"
-set_env_key MAIL_FROM_NAME "${MAIL_FROM_NAME:-}"
-set_env_key FRONTEND_URL "${FRONTEND_URL:-}"
+if (! $updated) {
+    $lines[] = $prefix . $value;
+}
+
+file_put_contents($file, implode(PHP_EOL, $lines) . PHP_EOL);
+' "$key" "$value"
+}
+
+if [ "$SYNC_ENV_FILE" = "true" ]; then
+  # Keep runtime infra settings aligned with Docker Compose environment.
+  set_env_key DB_HOST "${DB_HOST:-}"
+  set_env_key DB_PORT "${DB_PORT:-}"
+  set_env_key DB_DATABASE "${DB_DATABASE:-}"
+  set_env_key DB_USERNAME "${DB_USERNAME:-}"
+  set_env_key DB_PASSWORD "${DB_PASSWORD:-}"
+  set_env_key APP_ENV "${APP_ENV:-}"
+  set_env_key APP_DEBUG "${APP_DEBUG:-}"
+  set_env_key APP_URL "${APP_URL:-}"
+  set_env_key APP_AUTO_SEED "${APP_AUTO_SEED:-}"
+  set_env_key SESSION_SECURE_COOKIE "${SESSION_SECURE_COOKIE:-}"
+  set_env_key SESSION_DOMAIN "${SESSION_DOMAIN:-}"
+  set_env_key SANCTUM_STATEFUL_DOMAINS "${SANCTUM_STATEFUL_DOMAINS:-}"
+  set_env_key CACHE_STORE "${CACHE_STORE:-}"
+  set_env_key SESSION_DRIVER "${SESSION_DRIVER:-}"
+  set_env_key QUEUE_CONNECTION "${QUEUE_CONNECTION:-}"
+  set_env_key REDIS_CLIENT "${REDIS_CLIENT:-}"
+  set_env_key REDIS_HOST "${REDIS_HOST:-}"
+  set_env_key REDIS_PORT "${REDIS_PORT:-}"
+  set_env_key MAIL_QUEUE "${MAIL_QUEUE:-}"
+  set_env_key MAIL_MAILER "${MAIL_MAILER:-}"
+  set_env_key MAIL_SCHEME "${MAIL_SCHEME:-}"
+  set_env_key MAIL_ENCRYPTION "${MAIL_ENCRYPTION:-}"
+  set_env_key MAIL_HOST "${MAIL_HOST:-}"
+  set_env_key MAIL_PORT "${MAIL_PORT:-}"
+  set_env_key MAIL_USERNAME "${MAIL_USERNAME:-}"
+  set_env_key MAIL_PASSWORD "${MAIL_PASSWORD:-}"
+  set_env_key MAIL_EHLO_DOMAIN "${MAIL_EHLO_DOMAIN:-}"
+  set_env_key MAIL_FROM_ADDRESS "${MAIL_FROM_ADDRESS:-}"
+  set_env_key MAIL_FROM_NAME "${MAIL_FROM_NAME:-}"
+  set_env_key FRONTEND_URL "${FRONTEND_URL:-}"
+fi
 
 if ! grep -q '^APP_KEY=base64:' .env; then
   php artisan key:generate --force --ansi

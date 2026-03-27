@@ -61,12 +61,13 @@ class AuthController extends Controller
         }
 
         $user->tokens()->delete();
-        $token = $user->createToken('api-token')->plainTextToken;
+        $issuedToken = $user->issueApiToken();
 
         return response()->json([
             'user' => $user,
-            'token' => $token,
+            'token' => $issuedToken->plainTextToken,
             'token_type' => 'Bearer',
+            'expires_at' => $issuedToken->accessToken->expires_at?->toISOString(),
             'email_verification_required' => $emailVerificationRequired,
             'verification_email_sent' => $verificationEmailSent,
             'message' => $emailVerificationRequired
@@ -101,10 +102,7 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'message' => $verificationEmailSent
-                ? 'Si un compte non verifie existe, un email de verification vient d\'etre envoye.'
-                : 'Si un compte non verifie existe, reessaie plus tard pour renvoyer la verification.',
-            'verification_email_sent' => $verificationEmailSent,
+            'message' => 'Si ce compte existe et n\'est pas verifie, un email va etre envoye si possible.',
         ]);
     }
 

@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FieldBlock, SectionCard, StatusBadge } from "@/components/app/app-ui";
 
 export function AccountTab({
     user,
@@ -8,36 +12,47 @@ export function AccountTab({
     setError,
 }) {
     const [profileForm, setProfileForm] = useState({
-        name: '',
-        email: '',
-        current_password: '',
-        password: '',
-        password_confirmation: '',
+        name: "",
+        email: "",
+        current_password: "",
+        password: "",
+        password_confirmation: "",
     });
     const [deleteForm, setDeleteForm] = useState({
-        password: '',
-        confirmation: '',
+        password: "",
+        confirmation: "",
     });
 
     useEffect(() => {
         setProfileForm((previous) => ({
             ...previous,
-            name: user?.name ?? '',
-            email: user?.email ?? '',
+            name: user?.name ?? "",
+            email: user?.email ?? "",
         }));
     }, [user?.name, user?.email]);
 
     const submitProfile = async (event) => {
         event.preventDefault();
-        setError('');
+        setError("");
 
         const payload = {
             name: profileForm.name.trim(),
             email: profileForm.email.trim(),
         };
+        const emailChanged = payload.email !== (user?.email ?? "");
+        const passwordChanged = Boolean(profileForm.password);
+        const requiresCurrentPassword = emailChanged || passwordChanged;
 
-        if (profileForm.password) {
+        if (requiresCurrentPassword && !profileForm.current_password) {
+            setError("Saisis ton mot de passe actuel pour confirmer ce changement.");
+            return;
+        }
+
+        if (requiresCurrentPassword) {
             payload.current_password = profileForm.current_password;
+        }
+
+        if (passwordChanged) {
             payload.password = profileForm.password;
             payload.password_confirmation = profileForm.password_confirmation;
         }
@@ -47,23 +62,23 @@ export function AccountTab({
         if (updated) {
             setProfileForm((previous) => ({
                 ...previous,
-                current_password: '',
-                password: '',
-                password_confirmation: '',
+                current_password: "",
+                password: "",
+                password_confirmation: "",
             }));
         }
     };
 
     const submitDelete = async (event) => {
         event.preventDefault();
-        setError('');
+        setError("");
 
-        if (deleteForm.confirmation !== 'SUPPRIMER') {
-            setError('Tape SUPPRIMER pour confirmer la suppression du compte.');
+        if (deleteForm.confirmation !== "SUPPRIMER") {
+            setError("Tape SUPPRIMER pour confirmer la suppression du compte.");
             return;
         }
 
-        if (!window.confirm('Cette action est definitive. Supprimer le compte et toutes les donnees ?')) {
+        if (!window.confirm("Cette action est définitive. Supprimer le compte et toutes les données ?")) {
             return;
         }
 
@@ -71,90 +86,103 @@ export function AccountTab({
     };
 
     return (
-        <section className="content-grid two-columns">
-            <article className="panel">
-                <h2>Mon compte</h2>
-                <p className="muted small account-helper">
-                    Modifie tes informations personnelles. Le changement de mot de passe exige ton mot de passe actuel.
-                </p>
-                <form className="form-grid" onSubmit={submitProfile}>
-                    <label>
-                        Nom complet
-                        <input
-                            value={profileForm.name}
-                            onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
-                            required
-                        />
-                    </label>
-                    <label>
-                        Email
-                        <input
-                            type="email"
-                            value={profileForm.email}
-                            onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
-                            required
-                        />
-                    </label>
-                    <label>
-                        Mot de passe actuel
-                        <input
-                            type="password"
-                            value={profileForm.current_password}
-                            onChange={(event) => setProfileForm({ ...profileForm, current_password: event.target.value })}
-                        />
-                    </label>
-                    <label>
-                        Nouveau mot de passe
-                        <input
-                            type="password"
-                            value={profileForm.password}
-                            onChange={(event) => setProfileForm({ ...profileForm, password: event.target.value })}
-                        />
-                    </label>
-                    <label className="full">
-                        Confirmation nouveau mot de passe
-                        <input
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)]">
+            <SectionCard
+                title="Mon compte"
+                description="Profil et mot de passe."
+                action={<StatusBadge variant="secondary">{user?.is_admin ? "Admin" : "Utilisateur"}</StatusBadge>}
+            >
+                <form className="grid gap-5" onSubmit={submitProfile}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <FieldBlock label="Nom complet">
+                            <Input
+                                value={profileForm.name}
+                                onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
+                                className="h-11 rounded-xl"
+                                required
+                            />
+                        </FieldBlock>
+                        <FieldBlock label="Email">
+                            <Input
+                                type="email"
+                                value={profileForm.email}
+                                onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
+                                className="h-11 rounded-xl"
+                                required
+                            />
+                        </FieldBlock>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <FieldBlock label="Mot de passe actuel">
+                            <Input
+                                type="password"
+                                value={profileForm.current_password}
+                                onChange={(event) => setProfileForm({ ...profileForm, current_password: event.target.value })}
+                                className="h-11 rounded-xl"
+                            />
+                        </FieldBlock>
+                        <FieldBlock label="Nouveau mot de passe">
+                            <Input
+                                type="password"
+                                value={profileForm.password}
+                                onChange={(event) => setProfileForm({ ...profileForm, password: event.target.value })}
+                                className="h-11 rounded-xl"
+                            />
+                        </FieldBlock>
+                    </div>
+
+                    <FieldBlock label="Confirmation du nouveau mot de passe">
+                        <Input
                             type="password"
                             value={profileForm.password_confirmation}
                             onChange={(event) => setProfileForm({ ...profileForm, password_confirmation: event.target.value })}
+                            className="h-11 rounded-xl"
                         />
-                    </label>
-                    <div className="row actions full">
-                        <button className="btn btn-primary" type="submit" disabled={busy}>
+                    </FieldBlock>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <Button className="rounded-xl" type="submit" disabled={busy}>
                             Enregistrer mes informations
-                        </button>
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            Les changements d’email ou de mot de passe demandent maintenant le mot de passe actuel et renouvellent la session.
+                        </p>
                     </div>
                 </form>
-            </article>
+            </SectionCard>
 
-            <article className="panel account-danger-zone">
-                <h2>Suppression du compte</h2>
-                <p className="muted small">
-                    Toutes tes donnees seront supprimees: ruchers, ruches, releves, interventions et tokens d&apos;acces.
-                </p>
-                <form className="form-grid" onSubmit={submitDelete}>
-                    <label className="full">
-                        Mot de passe actuel
-                        <input
+            <SectionCard
+                title="Suppression du compte"
+                description="Suppression définitive."
+                action={<StatusBadge className="bg-destructive/10 text-destructive">Zone sensible</StatusBadge>}
+            >
+                <form className="grid gap-5" onSubmit={submitDelete}>
+                    <FieldBlock label="Mot de passe actuel">
+                        <Input
                             type="password"
                             value={deleteForm.password}
                             onChange={(event) => setDeleteForm({ ...deleteForm, password: event.target.value })}
+                            className="h-11 rounded-xl"
                             required
                         />
-                    </label>
-                    <label className="full">
-                        Ecris SUPPRIMER pour confirmer
-                        <input
+                    </FieldBlock>
+                    <FieldBlock
+                        label="Écris SUPPRIMER pour confirmer"
+                        hint="Cette vérification limite les suppressions accidentelles."
+                    >
+                        <Input
                             value={deleteForm.confirmation}
                             onChange={(event) => setDeleteForm({ ...deleteForm, confirmation: event.target.value })}
+                            className="h-11 rounded-xl"
                             required
                         />
-                    </label>
-                    <button className="btn btn-danger" type="submit" disabled={busy}>
-                        Supprimer definitivement mon compte
-                    </button>
+                    </FieldBlock>
+                    <Button className="rounded-xl" variant="destructive" type="submit" disabled={busy}>
+                        Supprimer définitivement mon compte
+                    </Button>
                 </form>
-            </article>
+            </SectionCard>
         </section>
     );
 }

@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 class AuthEmailFlowTest extends TestCase
@@ -53,7 +54,39 @@ class AuthEmailFlowTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('email_verification_required', true)
-            ->assertJsonStructure(['token', 'token_type', 'user']);
+            ->assertJsonStructure(['token', 'token_type', 'expires_at', 'user']);
+
+        $accessToken = PersonalAccessToken::findToken($response->json('token'));
+
+        $this->assertNotNull($accessToken);
+        $this->assertNotNull($accessToken->expires_at);
+
+        Notification::assertSentTo($user, QueuedVerifyEmail::class);
+    }
+
+    public function test_resend_verification_response_does_not_disclose_account_state(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->unverified()->create([
+            'email' => 'pending@example.test',
+        ]);
+
+        $expectedMessage = 'Si ce compte existe et n\'est pas verifie, un email va etre envoye si possible.';
+
+        $existingResponse = $this->postJson('/api/auth/resend-verification', [
+            'email' => 'pending@example.test',
+        ]);
+
+        $missingResponse = $this->postJson('/api/auth/resend-verification', [
+            'email' => 'missing@example.test',
+        ]);
+
+        $existingResponse->assertOk()
+            ->assertExactJson(['message' => $expectedMessage]);
+
+        $missingResponse->assertOk()
+            ->assertExactJson(['message' => $expectedMessage]);
 
         Notification::assertSentTo($user, QueuedVerifyEmail::class);
     }
@@ -127,6 +160,6 @@ class AuthEmailFlowTest extends TestCase
         $this->postJson('/api/auth/login', [
             'email' => 'recover@example.test',
             'password' => 'new-password-123',
-        ])->assertOk()->assertJsonStructure(['token', 'token_type', 'user']);
+        ])->assertOk()->assertJsonStructure(['token', 'token_type', 'expires_at', 'user']);
     }
 }

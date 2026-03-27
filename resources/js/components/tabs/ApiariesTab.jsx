@@ -1,5 +1,12 @@
-import { useMemo } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
+import { useMemo } from "react";
+import { LocateFixed, MapPinned, Pencil, Trash2 } from "lucide-react";
+import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from "react-leaflet";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { EmptyState, FieldBlock, SectionCard, StatusBadge } from "@/components/app/app-ui";
+import { formatCountLabel } from "@/utils/text";
 
 function ApiaryLocationEvents({ onSelect }) {
     useMapEvents({
@@ -61,63 +68,79 @@ export function ApiariesTab({
     const editMapCenter = editingApiaryPosition || userLocation || mapCenter;
 
     return (
-        <section className="content-grid two-columns">
-            <article className="panel">
-                <h2>Creer un rucher</h2>
-                <form className="form-grid" onSubmit={createApiary}>
-                    <label>
-                        Nom du rucher
-                        <input
-                            value={apiaryForm.name}
-                            onChange={(event) => setApiaryForm({ ...apiaryForm, name: event.target.value })}
-                            required
-                        />
-                    </label>
-                    <label>
-                        Latitude
-                        <input
-                            type="number"
-                            step="0.000001"
-                            value={apiaryForm.latitude}
-                            onChange={(event) => setApiaryForm({ ...apiaryForm, latitude: event.target.value })}
-                        />
-                    </label>
-                    <label>
-                        Longitude
-                        <input
-                            type="number"
-                            step="0.000001"
-                            value={apiaryForm.longitude}
-                            onChange={(event) => setApiaryForm({ ...apiaryForm, longitude: event.target.value })}
-                        />
-                    </label>
-                    <div className="full map-picker-field">
-                        <div className="row between">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <SectionCard
+                title="Ajouter un rucher"
+                description="Nom, position, notes."
+                action={<StatusBadge className="bg-primary/10 text-primary">Carte interactive</StatusBadge>}
+            >
+                <form className="grid gap-5" onSubmit={createApiary}>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <FieldBlock label="Nom du rucher" className="md:col-span-3">
+                            <Input
+                                value={apiaryForm.name}
+                                onChange={(event) => setApiaryForm({ ...apiaryForm, name: event.target.value })}
+                                placeholder="Ex: Rucher des peupliers"
+                                className="h-11 rounded-xl"
+                                required
+                            />
+                        </FieldBlock>
+                        <FieldBlock label="Latitude">
+                            <Input
+                                type="number"
+                                step="0.000001"
+                                inputMode="decimal"
+                                value={apiaryForm.latitude}
+                                onChange={(event) => setApiaryForm({ ...apiaryForm, latitude: event.target.value })}
+                                className="h-11 rounded-xl"
+                            />
+                        </FieldBlock>
+                        <FieldBlock label="Longitude">
+                            <Input
+                                type="number"
+                                step="0.000001"
+                                inputMode="decimal"
+                                value={apiaryForm.longitude}
+                                onChange={(event) => setApiaryForm({ ...apiaryForm, longitude: event.target.value })}
+                                className="h-11 rounded-xl"
+                            />
+                        </FieldBlock>
+                        <div className="hidden md:block" />
+                    </div>
+
+                    <div className="rounded-[24px] border border-border/70 bg-secondary/35 p-4">
+                        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
-                                <p className="field-title">Position du rucher</p>
-                                <p className="muted small">Clique sur la carte pour placer le rucher.</p>
+                                <p className="text-sm font-medium text-foreground">Position du rucher</p>
+                                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                    Clique sur la carte pour placer le rucher avec précision.
+                                </p>
                             </div>
-                            <div className="row actions">
-                                {userLocation && (
-                                    <button
+                            <div className="flex flex-wrap gap-2">
+                                {userLocation ? (
+                                    <Button
                                         type="button"
-                                        className="btn btn-soft"
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-xl"
                                         onClick={() => selectApiaryLocation(userLocation[0], userLocation[1])}
                                     >
+                                        <LocateFixed className="size-4" />
                                         Utiliser ma position
-                                    </button>
-                                )}
-                                <button type="button" className="btn btn-soft" onClick={clearApiaryLocation}>
+                                    </Button>
+                                ) : null}
+                                <Button type="button" variant="ghost" size="sm" className="rounded-xl" onClick={clearApiaryLocation}>
                                     Effacer
-                                </button>
+                                </Button>
                             </div>
                         </div>
+
                         <MapContainer
                             key={`create-apiary-map-${createMapCenter[0]}-${createMapCenter[1]}-${apiaries.length}`}
                             center={createMapCenter}
                             zoom={selectedApiaryPosition ? 10 : 7}
                             scrollWheelZoom
-                            className="map-picker-canvas"
+                            className="apiary-map"
                         >
                             <TileLayer
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -130,133 +153,200 @@ export function ApiariesTab({
                                         <Popup>{apiary.name}</Popup>
                                     </Marker>
                                 ))}
-                            {selectedApiaryPosition && (
+                            {selectedApiaryPosition ? (
                                 <Marker position={selectedApiaryPosition}>
                                     <Popup>Nouveau rucher</Popup>
                                 </Marker>
-                            )}
+                            ) : null}
                             <ApiaryLocationEvents onSelect={selectApiaryLocation} />
                         </MapContainer>
                     </div>
-                    <label className="full">
-                        Notes
-                        <textarea
-                            rows={3}
+
+                    <FieldBlock label="Notes de terrain">
+                        <Textarea
+                            rows={4}
                             value={apiaryForm.notes}
                             onChange={(event) => setApiaryForm({ ...apiaryForm, notes: event.target.value })}
+                            placeholder="Accès, environnement, contraintes ou observations utiles."
+                            className="min-h-28 rounded-2xl"
                         />
-                    </label>
-                    <button className="btn btn-primary" type="submit" disabled={busy}>Ajouter rucher</button>
-                </form>
-            </article>
+                    </FieldBlock>
 
-            <article className="panel">
-                <h2>Mes ruchers</h2>
-                <div className="list-shell">
-                    {apiaries.map((apiary) => {
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <Button className="rounded-xl" type="submit" disabled={busy}>
+                            <MapPinned className="size-4" />
+                            Enregistrer le rucher
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            Les coordonnées sont réutilisées ensuite pour simplifier la création des ruches.
+                        </p>
+                    </div>
+                </form>
+            </SectionCard>
+
+            <SectionCard
+                title="Ruchers en place"
+                description="Liste et édition des sites."
+                action={<StatusBadge variant="secondary">{formatCountLabel(apiaries.length, "site")}</StatusBadge>}
+                contentClassName="grid gap-4"
+            >
+                {apiaries.length === 0 ? (
+                    <EmptyState
+                        title="Aucun rucher enregistré"
+                        description="Crée ton premier site sur la carte."
+                    />
+                ) : (
+                    apiaries.map((apiary) => {
                         const isEditing = editingApiaryId === apiary.id;
 
                         return (
-                            <div className="item-card" key={apiary.id}>
+                            <div
+                                key={apiary.id}
+                                className="radius-panel border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
+                            >
                                 {isEditing ? (
-                                    <div className="form-grid compact">
-                                        <label>
-                                            Nom
-                                            <input
-                                                value={editingApiaryForm.name}
-                                                onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, name: event.target.value })}
-                                            />
-                                        </label>
-                                        <label>
-                                            Latitude
-                                            <input
-                                                type="number"
-                                                step="0.000001"
-                                                value={editingApiaryForm.latitude}
-                                                onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, latitude: event.target.value })}
-                                            />
-                                        </label>
-                                        <label>
-                                            Longitude
-                                            <input
-                                                type="number"
-                                                step="0.000001"
-                                                value={editingApiaryForm.longitude}
-                                                onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, longitude: event.target.value })}
-                                            />
-                                        </label>
-                                        <div className="full map-picker-field">
-                                            <div className="row between">
-                                                <p className="field-title">Ajuster la localisation</p>
-                                                <div className="row actions">
-                                                    {userLocation && (
-                                                        <button
+                                    <div className="grid gap-4">
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <FieldBlock label="Nom">
+                                                <Input
+                                                    value={editingApiaryForm.name}
+                                                    onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, name: event.target.value })}
+                                                    className="h-11 rounded-xl"
+                                                />
+                                            </FieldBlock>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FieldBlock label="Latitude">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.000001"
+                                                        inputMode="decimal"
+                                                        value={editingApiaryForm.latitude}
+                                                        onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, latitude: event.target.value })}
+                                                        className="h-11 rounded-xl"
+                                                    />
+                                                </FieldBlock>
+                                                <FieldBlock label="Longitude">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.000001"
+                                                        inputMode="decimal"
+                                                        value={editingApiaryForm.longitude}
+                                                        onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, longitude: event.target.value })}
+                                                        className="h-11 rounded-xl"
+                                                    />
+                                                </FieldBlock>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-[24px] border border-border/70 bg-secondary/35 p-4">
+                                            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                                <p className="text-sm font-medium text-foreground">Ajuster la localisation</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {userLocation ? (
+                                                        <Button
                                                             type="button"
-                                                            className="btn btn-soft"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="rounded-xl"
                                                             onClick={() => selectEditingApiaryLocation(userLocation[0], userLocation[1])}
                                                         >
+                                                            <LocateFixed className="size-4" />
                                                             Utiliser ma position
-                                                        </button>
-                                                    )}
-                                                    <button type="button" className="btn btn-soft" onClick={clearEditingApiaryLocation}>
+                                                        </Button>
+                                                    ) : null}
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="rounded-xl"
+                                                        onClick={clearEditingApiaryLocation}
+                                                    >
                                                         Effacer
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </div>
+
                                             <MapContainer
                                                 key={`edit-apiary-map-${editMapCenter[0]}-${editMapCenter[1]}-${apiary.id}`}
                                                 center={editMapCenter}
                                                 zoom={editingApiaryPosition ? 10 : 7}
                                                 scrollWheelZoom
-                                                className="map-picker-canvas"
+                                                className="apiary-map apiary-map-compact"
                                             >
                                                 <TileLayer
                                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                                 />
-                                                {editingApiaryPosition && (
+                                                {editingApiaryPosition ? (
                                                     <Marker position={editingApiaryPosition}>
-                                                        <Popup>{editingApiaryForm.name || 'Rucher en edition'}</Popup>
+                                                        <Popup>{editingApiaryForm.name || "Rucher en édition"}</Popup>
                                                     </Marker>
-                                                )}
+                                                ) : null}
                                                 <ApiaryLocationEvents onSelect={selectEditingApiaryLocation} />
                                             </MapContainer>
                                         </div>
-                                        <label className="full">
-                                            Notes
-                                            <textarea
-                                                rows={2}
+
+                                        <FieldBlock label="Notes">
+                                            <Textarea
+                                                rows={3}
                                                 value={editingApiaryForm.notes}
                                                 onChange={(event) => setEditingApiaryForm({ ...editingApiaryForm, notes: event.target.value })}
+                                                className="rounded-2xl"
                                             />
-                                        </label>
-                                        <div className="row actions full">
-                                            <button className="btn btn-primary" type="button" onClick={() => updateApiary(apiary.id)} disabled={busy}>Sauver</button>
-                                            <button className="btn" type="button" onClick={() => setEditingApiaryId(null)}>Annuler</button>
+                                        </FieldBlock>
+
+                                        <div className="flex flex-col gap-3 sm:flex-row">
+                                            <Button className="rounded-xl" type="button" onClick={() => updateApiary(apiary.id)} disabled={busy}>
+                                                Sauver
+                                            </Button>
+                                            <Button className="rounded-xl" type="button" variant="outline" onClick={() => setEditingApiaryId(null)}>
+                                                Annuler
+                                            </Button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <>
-                                        <div className="row between">
-                                            <h3>{apiary.name}</h3>
-                                            <span className="chip">{apiary.hives_count ?? 0} ruche(s)</span>
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                            <div className="space-y-2">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <h3 className="font-display text-2xl text-foreground">{apiary.name}</h3>
+                                                    <StatusBadge variant="secondary">{formatCountLabel(apiary.hives_count ?? 0, "ruche")}</StatusBadge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Lat {apiary.latitude ?? "-"} / Lon {apiary.longitude ?? "-"}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => startEditApiary(apiary)}>
+                                                    <Pencil className="size-4" />
+                                                    Modifier
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="rounded-xl"
+                                                    onClick={() => deleteApiary(apiary.id)}
+                                                    disabled={busy}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                    Supprimer
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <p className="muted small">
-                                            Lat {apiary.latitude ?? '-'} / Lon {apiary.longitude ?? '-'}
-                                        </p>
-                                        {apiary.notes && <p>{apiary.notes}</p>}
-                                        <div className="row actions">
-                                            <button type="button" className="btn" onClick={() => startEditApiary(apiary)}>Editer</button>
-                                            <button type="button" className="btn btn-danger" onClick={() => deleteApiary(apiary.id)} disabled={busy}>Supprimer</button>
-                                        </div>
-                                    </>
+
+                                        {apiary.notes ? (
+                                            <p className="text-sm leading-7 text-muted-foreground">{apiary.notes}</p>
+                                        ) : (
+                                            <p className="text-sm italic text-muted-foreground">Aucune note associee a ce rucher.</p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         );
-                    })}
-                    {apiaries.length === 0 && <p className="muted">Aucun rucher pour le moment.</p>}
-                </div>
-            </article>
+                    })
+                )}
+            </SectionCard>
         </section>
     );
 }

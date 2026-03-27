@@ -1,23 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { HiveCreationFunnel } from '../hives/HiveCreationFunnel';
 import { HivesList } from '../hives/HivesList';
 
 export function HivesTab(props) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const deferredSearch = useDeferredValue(search);
 
     const visibleHives = useMemo(
         () => props.hives.filter((hive) => {
             const matchesStatus = statusFilter === 'all' || hive.status === statusFilter;
-            const matchesSearch = hive.name.toLowerCase().includes(search.trim().toLowerCase());
+            const matchesSearch = hive.name.toLowerCase().includes(deferredSearch.trim().toLowerCase());
 
             return matchesStatus && matchesSearch;
         }),
-        [props.hives, search, statusFilter]
+        [deferredSearch, props.hives, statusFilter]
     );
 
     return (
-        <section className="content-grid hives-page">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
             <HiveCreationFunnel
                 hiveForm={props.hiveForm}
                 setHiveForm={props.setHiveForm}

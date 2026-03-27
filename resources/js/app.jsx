@@ -1,5 +1,5 @@
 import './bootstrap';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import 'leaflet/dist/leaflet.css';
 
@@ -9,45 +9,44 @@ import {
     initialActionForm,
     initialApiaryForm,
     initialHiveForm,
-    initialReadingForm,
 } from './constants';
 import { AuthPanel } from './components/auth/AuthPanel';
-import { OverviewTab } from './components/tabs/OverviewTab';
-import { ApiariesTab } from './components/tabs/ApiariesTab';
-import { HivesTab } from './components/tabs/HivesTab';
-import { ReadingsTab } from './components/tabs/ReadingsTab';
-import { ActionsTab } from './components/tabs/ActionsTab';
-import { AccountTab } from './components/tabs/AccountTab';
-import { QuickActionsTab } from './components/tabs/QuickActionsTab';
-import { AdminTab } from './components/tabs/AdminTab';
+import { AppShell } from './components/layout/AppShell';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from './lib/api';
 import { setupLeafletDefaultIcon } from './lib/leaflet';
 import { toDatetimeValue } from './utils/date';
 import { parseNumber } from './utils/number';
 
 setupLeafletDefaultIcon();
+const lazyNamed = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
+
 const TOKEN_STORAGE_KEY = 'apiaryhub_token';
+const TOKEN_EXPIRATION_STORAGE_KEY = 'apiaryhub_token_expires_at';
 const LEGACY_TOKEN_STORAGE_KEY = 'beewatch_token';
 const ACTIVE_TAB_STORAGE_PREFIX = 'apiaryhub_active_tab_';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
-const MOBILE_ACTIONS_TAB = { id: 'mobile-actions', label: 'Actions rapides' };
 const ADMIN_TAB = { id: 'admin', label: 'Administration' };
 const ACCOUNT_TAB = { id: 'account', label: 'Compte' };
 const RESET_PASSWORD_PATH_PREFIX = '/reset-password/';
-const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_complet.png';
-const BRAND_LOGO_MARK = '/branding/apiaryhub_logo_seul.png';
+const BRAND_LOGO_FULL = '/branding/apiaryhub_logo_seul_512.png';
+const OperationsTab = lazyNamed(() => import('./components/tabs/OperationsTab'), 'OperationsTab');
+const FieldTab = lazyNamed(() => import('./components/tabs/FieldTab'), 'FieldTab');
+const JournalTab = lazyNamed(() => import('./components/tabs/JournalTab'), 'JournalTab');
+const ComplianceTab = lazyNamed(() => import('./components/tabs/ComplianceTab'), 'ComplianceTab');
+const AccountTab = lazyNamed(() => import('./components/tabs/AccountTab'), 'AccountTab');
+const AdminTab = lazyNamed(() => import('./components/tabs/AdminTab'), 'AdminTab');
 
-const getAllowedTabIds = (currentUser, isMobile) => {
+const getAllowedTabIds = (currentUser) => {
     if (currentUser?.is_admin) {
         return [ADMIN_TAB.id, ACCOUNT_TAB.id];
     }
 
-    const baseTabIds = TABS.map((tab) => tab.id);
-    return isMobile ? [MOBILE_ACTIONS_TAB.id, ...baseTabIds] : baseTabIds;
+    return TABS.map((tab) => tab.id);
 };
 
-const resolveTabForUser = (currentUser, candidateTab, isMobile) => {
-    const allowedTabs = getAllowedTabIds(currentUser, isMobile);
+const resolveTabForUser = (currentUser, candidateTab) => {
+    const allowedTabs = getAllowedTabIds(currentUser);
 
     if (candidateTab && allowedTabs.includes(candidateTab)) {
         return candidateTab;
@@ -57,17 +56,73 @@ const resolveTabForUser = (currentUser, candidateTab, isMobile) => {
         return ADMIN_TAB.id;
     }
 
-    return isMobile ? MOBILE_ACTIONS_TAB.id : 'overview';
+    return 'field';
 };
+
+function TabLoadingFallback() {
+    return (
+        <div className="grid gap-6">
+            <div className="grid gap-4 lg:grid-cols-3">
+                <Skeleton className="h-44 rounded-[28px]" />
+                <Skeleton className="h-44 rounded-[28px]" />
+                <Skeleton className="h-44 rounded-[28px]" />
+            </div>
+            <Skeleton className="h-72 radius-shell" />
+            <div className="grid gap-4 lg:grid-cols-2">
+                <Skeleton className="h-64 rounded-[28px]" />
+                <Skeleton className="h-64 rounded-[28px]" />
+            </div>
+        </div>
+    );
+}
+
+function getStoredSessionValue(key) {
+    if (typeof window === 'undefined') {
+        return '';
+    }
+
+    return window.sessionStorage.getItem(key)
+        || window.localStorage.getItem(key)
+        || '';
+}
+
+function isExpiredTimestamp(value) {
+    if (!value) {
+        return false;
+    }
+
+    const expirationTime = Date.parse(value);
+
+    return Number.isFinite(expirationTime) && expirationTime <= Date.now();
+}
 
 function App() {
     const [token, setToken] = useState(
-        () => localStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(LEGACY_TOKEN_STORAGE_KEY) || ''
+        () => {
+            const storedToken = getStoredSessionValue(TOKEN_STORAGE_KEY) || getStoredSessionValue(LEGACY_TOKEN_STORAGE_KEY);
+            const storedExpiration = getStoredSessionValue(TOKEN_EXPIRATION_STORAGE_KEY);
+
+            if (!storedToken || isExpiredTimestamp(storedExpiration)) {
+                return '';
+            }
+
+            return storedToken;
+        }
+    );
+    const [tokenExpiration, setTokenExpiration] = useState(
+        () => {
+            const storedExpiration = getStoredSessionValue(TOKEN_EXPIRATION_STORAGE_KEY);
+
+            if (!storedExpiration || isExpiredTimestamp(storedExpiration)) {
+                return null;
+            }
+
+            return storedExpiration;
+        }
     );
     const [user, setUser] = useState(null);
     const [apiaries, setApiaries] = useState([]);
     const [hives, setHives] = useState([]);
-    const [readings, setReadings] = useState([]);
     const [actions, setActions] = useState([]);
     const [weatherByHive, setWeatherByHive] = useState({});
     const [adminDashboard, setAdminDashboard] = useState(null);
@@ -83,16 +138,11 @@ function App() {
         reset_token: '',
     });
 
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('field');
     const [selectedApiaryFilter, setSelectedApiaryFilter] = useState('all');
-    const [selectedReadingsApiaryFilter, setSelectedReadingsApiaryFilter] = useState('all');
     const [selectedActionsApiaryFilter, setSelectedActionsApiaryFilter] = useState('all');
     const [hiveForm, setHiveForm] = useState(initialHiveForm);
     const [apiaryForm, setApiaryForm] = useState(initialApiaryForm);
-    const [readingForm, setReadingForm] = useState(() => ({
-        ...initialReadingForm,
-        recorded_at: toDatetimeValue(),
-    }));
     const [actionForm, setActionForm] = useState(() => ({
         ...initialActionForm,
         performed_at: toDatetimeValue(),
@@ -104,45 +154,31 @@ function App() {
     const [editingHiveForm, setEditingHiveForm] = useState(initialHiveForm);
 
     const [busy, setBusy] = useState(false);
-    const [verificationPopupBusy, setVerificationPopupBusy] = useState(false);
-    const [verificationPopupVisible, setVerificationPopupVisible] = useState(false);
+    const [verificationBusy, setVerificationBusy] = useState(false);
+    const [verificationNoticeDismissed, setVerificationNoticeDismissed] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [isMobileViewport, setIsMobileViewport] = useState(
-        () => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false)
-    );
     const [userLocation, setUserLocation] = useState(null);
     const userNeedsEmailVerification = Boolean(token && user && !user.email_verified_at);
 
     const stats = useMemo(() => ({
         hiveCount: hives.length,
-        readingCount: readings.length,
         actionCount: actions.length,
         apiaryCount: apiaries.length,
-    }), [hives, readings, actions, apiaries]);
+    }), [hives, actions, apiaries]);
 
-    const mobileRecentActivity = useMemo(() => {
-        const readingItems = readings.map((reading) => ({
-            id: `reading-${reading.id}`,
-            kind: 'Releve',
-            title: reading.hive?.name || `Ruche #${reading.hive_id}`,
-            timestamp: reading.recorded_at,
-            subtitle: `Poids ${reading.weight_kg ?? '-'} kg`,
-        }));
-
+    const recentActivity = useMemo(() => {
         const actionItems = actions.map((action) => ({
             id: `action-${action.id}`,
-            kind: 'Intervention',
+            kind: 'Action',
             title: action.type || 'Intervention',
             timestamp: action.performed_at,
-            subtitle: action.hive?.name || `Ruche #${action.hive_id}`,
+            subtitle: `${action.hive?.name || `Ruche #${action.hive_id}`} | ${action.hive?.apiary_entity?.name || action.hive?.apiary || 'Rucher non précisé'}`,
         }));
 
-        return [...readingItems, ...actionItems]
-            .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
-            .slice(0, 4);
-    }, [readings, actions]);
+        return actionItems
+            .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime());
+    }, [actions]);
 
     const filteredHives = useMemo(() => {
         if (selectedApiaryFilter === 'all') {
@@ -153,16 +189,6 @@ function App() {
 
         return hives.filter((hive) => Number(hive.apiary_id) === selectedId);
     }, [hives, selectedApiaryFilter]);
-
-    const readingsHives = useMemo(() => {
-        if (selectedReadingsApiaryFilter === 'all') {
-            return hives;
-        }
-
-        const selectedId = Number(selectedReadingsApiaryFilter);
-
-        return hives.filter((hive) => Number(hive.apiary_id) === selectedId);
-    }, [hives, selectedReadingsApiaryFilter]);
 
     const actionsHives = useMemo(() => {
         if (selectedActionsApiaryFilter === 'all') {
@@ -267,20 +293,6 @@ function App() {
         };
     };
 
-    const buildApiaryQuery = (apiaryFilter) => {
-        if (apiaryFilter === 'all') {
-            return '';
-        }
-
-        const apiaryId = Number(apiaryFilter);
-
-        if (!apiaryId || Number.isNaN(apiaryId)) {
-            return '';
-        }
-
-        return `?apiary_id=${apiaryId}`;
-    };
-
     const buildAdminQuery = () => {
         if (selectedAdminApiaryFilter === 'all') {
             return '';
@@ -317,7 +329,7 @@ function App() {
             return await apiRequest(path, options);
         } catch (apiError) {
             if (options.token && apiError?.status === 401) {
-                clearSessionState('Session expiree. Reconnecte-toi.');
+                clearSessionState('Session expirée. Reconnecte-toi.');
                 const handledError = new Error('Session expired');
                 handledError.code = SESSION_EXPIRED_CODE;
                 throw handledError;
@@ -327,22 +339,11 @@ function App() {
         }
     };
 
-    const fetchReadingsAndActions = async (authToken = token) => {
-        const [readingData, actionData] = await Promise.all([
-            apiRequestWithSession(`/api/readings${buildApiaryQuery(selectedReadingsApiaryFilter)}`, { token: authToken }),
-            apiRequestWithSession(`/api/actions${buildApiaryQuery(selectedActionsApiaryFilter)}`, { token: authToken }),
-        ]);
-
-        setReadings(readingData);
-        setActions(actionData);
-    };
-
     useEffect(() => {
         if (!token) {
             setUser(null);
             setApiaries([]);
             setHives([]);
-            setReadings([]);
             setActions([]);
             setAdminDashboard(null);
             return;
@@ -353,18 +354,20 @@ function App() {
             setError('');
 
             try {
-                const [me, apiaryData, hiveData] = await Promise.all([
-                    apiRequestWithSession('/api/user', { token }),
+                const me = await apiRequestWithSession('/api/user', { token });
+                const [apiaryData, hiveData, actionData] = await Promise.all([
                     apiRequestWithSession('/api/apiaries', { token }),
                     apiRequestWithSession('/api/hives', { token }),
+                    apiRequestWithSession('/api/actions', { token }),
                 ]);
 
                 setUser(me);
                 setApiaries(apiaryData);
                 setHives(hiveData);
+                setActions(actionData);
                 setAdminDashboard(null);
                 const savedTab = localStorage.getItem(`${ACTIVE_TAB_STORAGE_PREFIX}${me.id}`);
-                setActiveTab(resolveTabForUser(me, savedTab, isMobileViewport));
+                setActiveTab(resolveTabForUser(me, savedTab));
 
                 if (me?.is_admin) {
                     const adminData = await apiRequestWithSession(`/api/admin/dashboard${buildAdminQuery()}`, { token });
@@ -373,9 +376,6 @@ function App() {
 
                 if (!hiveForm.apiary_id && apiaryData[0]) {
                     setHiveForm((previous) => ({ ...previous, apiary_id: String(apiaryData[0].id) }));
-                }
-                if (!readingForm.hive_id && hiveData[0]) {
-                    setReadingForm((previous) => ({ ...previous, hive_id: String(hiveData[0].id) }));
                 }
                 if (!actionForm.hive_id && hiveData[0]) {
                     setActionForm((previous) => ({ ...previous, hive_id: String(hiveData[0].id) }));
@@ -393,52 +393,28 @@ function App() {
     }, [token]);
 
     useEffect(() => {
-        if (!token) {
+        if (typeof window === 'undefined') {
             return;
         }
 
-        const loadReadingsAndActions = async () => {
-            setBusy(true);
-            setError('');
-
-            try {
-                await fetchReadingsAndActions(token);
-            } catch (loadError) {
-                if (!isSessionExpiredError(loadError)) {
-                    setError(loadError.message);
-                }
-            } finally {
-                setBusy(false);
-            }
-        };
-
-        loadReadingsAndActions();
-    }, [token, selectedReadingsApiaryFilter, selectedActionsApiaryFilter]);
-
-    useEffect(() => {
         if (token) {
-            localStorage.setItem(TOKEN_STORAGE_KEY, token);
-            localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+            window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+            if (tokenExpiration) {
+                window.sessionStorage.setItem(TOKEN_EXPIRATION_STORAGE_KEY, tokenExpiration);
+            } else {
+                window.sessionStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            }
+            window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
         } else {
-            localStorage.removeItem(TOKEN_STORAGE_KEY);
-            localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+            window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.sessionStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
         }
-    }, [token]);
-
-    useEffect(() => {
-        if (!userNeedsEmailVerification) {
-            setVerificationPopupVisible(false);
-            return undefined;
-        }
-
-        setVerificationPopupVisible(true);
-
-        const intervalId = window.setInterval(() => {
-            setVerificationPopupVisible(true);
-        }, 90000);
-
-        return () => window.clearInterval(intervalId);
-    }, [userNeedsEmailVerification]);
+    }, [token, tokenExpiration]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || token) {
@@ -452,7 +428,7 @@ function App() {
         const emailVerified = url.searchParams.get('email_verified');
 
         if (emailVerified === '1') {
-            setInfo('Email confirme. Tu peux maintenant te connecter.');
+            setInfo('Email confirmé. Tu peux maintenant te connecter.');
             url.searchParams.delete('email_verified');
             window.history.replaceState({}, '', `${url.pathname}${url.search}`);
         }
@@ -519,48 +495,15 @@ function App() {
     }, [error]);
 
     useEffect(() => {
-        if (!token || typeof window === 'undefined') {
-            return undefined;
-        }
-
-        const mediaQuery = window.matchMedia('(max-width: 1023px)');
-        const syncViewportState = (mobile) => {
-            setIsMobileViewport(mobile);
-
-            if (!mobile) {
-                setMobileMenuOpen(false);
-            }
-        };
-
-        syncViewportState(mediaQuery.matches);
-
-        if (typeof mediaQuery.addEventListener === 'function') {
-            const handleChange = (event) => syncViewportState(event.matches);
-            mediaQuery.addEventListener('change', handleChange);
-            return () => mediaQuery.removeEventListener('change', handleChange);
-        }
-
-        const handleChange = (event) => syncViewportState(event.matches);
-        mediaQuery.addListener(handleChange);
-        return () => mediaQuery.removeListener(handleChange);
-    }, [token]);
-
-    useEffect(() => {
-        if (isMobileViewport) {
-            setMobileMenuOpen(false);
-        }
-    }, [isMobileViewport]);
-
-    useEffect(() => {
         if (!token || !user) {
             return;
         }
 
-        const resolvedTab = resolveTabForUser(user, activeTab, isMobileViewport);
+        const resolvedTab = resolveTabForUser(user, activeTab);
         if (resolvedTab !== activeTab) {
             setActiveTab(resolvedTab);
         }
-    }, [token, user, activeTab, isMobileViewport]);
+    }, [token, user, activeTab]);
 
     useEffect(() => {
         if (!token || !user) {
@@ -569,23 +512,6 @@ function App() {
 
         localStorage.setItem(`${ACTIVE_TAB_STORAGE_PREFIX}${user.id}`, activeTab);
     }, [token, user?.id, activeTab]);
-
-    useEffect(() => {
-        if (!token) {
-            document.body.classList.remove('no-scroll');
-            return undefined;
-        }
-
-        if (mobileMenuOpen) {
-            document.body.classList.add('no-scroll');
-        } else {
-            document.body.classList.remove('no-scroll');
-        }
-
-        return () => {
-            document.body.classList.remove('no-scroll');
-        };
-    }, [mobileMenuOpen, token]);
 
     useEffect(() => {
         if (selectedApiaryFilter === 'all') {
@@ -598,18 +524,6 @@ function App() {
             setSelectedApiaryFilter('all');
         }
     }, [apiaries, selectedApiaryFilter]);
-
-    useEffect(() => {
-        if (selectedReadingsApiaryFilter === 'all') {
-            return;
-        }
-
-        const exists = apiaries.some((apiary) => String(apiary.id) === String(selectedReadingsApiaryFilter));
-
-        if (!exists) {
-            setSelectedReadingsApiaryFilter('all');
-        }
-    }, [apiaries, selectedReadingsApiaryFilter]);
 
     useEffect(() => {
         if (selectedActionsApiaryFilter === 'all') {
@@ -635,33 +549,27 @@ function App() {
     }, [selectedApiaryFilter]);
 
     useEffect(() => {
-        setReadingForm((previous) => syncHiveSelection(previous, readingsHives));
-    }, [readingsHives]);
-
-    useEffect(() => {
         setActionForm((previous) => syncHiveSelection(previous, actionsHives));
     }, [actionsHives]);
 
     const clearSessionState = (message) => {
         setBusy(false);
-        setVerificationPopupBusy(false);
-        setVerificationPopupVisible(false);
+        setVerificationBusy(false);
+        setVerificationNoticeDismissed(false);
         setAdminLoading(false);
         setError('');
         setToken('');
+        setTokenExpiration(null);
         setUser(null);
         setApiaries([]);
         setHives([]);
-        setReadings([]);
         setActions([]);
         setAdminDashboard(null);
         setWeatherByHive({});
         setEditingApiaryId(null);
         setEditingHiveId(null);
-        setActiveTab('overview');
-        setMobileMenuOpen(false);
+        setActiveTab('field');
         setSelectedApiaryFilter('all');
-        setSelectedReadingsApiaryFilter('all');
         setSelectedActionsApiaryFilter('all');
         setSelectedAdminApiaryFilter('all');
         setInfo(message);
@@ -683,7 +591,8 @@ function App() {
 
             setApiaries(apiaryData);
             setHives(hiveData);
-            await fetchReadingsAndActions(token);
+            const actionData = await apiRequestWithSession('/api/actions', { token });
+            setActions(actionData);
 
             if (user?.is_admin) {
                 setAdminLoading(true);
@@ -742,8 +651,9 @@ function App() {
                 });
 
                 setToken(payload.token);
-                setActiveTab(isMobileViewport ? MOBILE_ACTIONS_TAB.id : 'overview');
-                setInfo(payload.message || 'Connexion reussie.');
+                setTokenExpiration(payload.expires_at || null);
+                setActiveTab('field');
+                setInfo(payload.message || 'Connexion réussie.');
                 return;
             }
 
@@ -764,7 +674,7 @@ function App() {
                     password: '',
                     password_confirmation: '',
                 }));
-                setInfo('Compte cree. Verifie ton email, puis connecte-toi.');
+                setInfo('Compte créé. Vérifie ton email, puis connecte-toi.');
                 return;
             }
 
@@ -774,7 +684,7 @@ function App() {
                     body: { email: authForm.email },
                 });
 
-                setInfo('Si cet email existe, un lien de reinitialisation a ete envoye.');
+                setInfo('Si cet email existe, un lien de réinitialisation a été envoyé.');
                 return;
             }
 
@@ -800,7 +710,7 @@ function App() {
                     password_confirmation: '',
                     reset_token: '',
                 }));
-                setInfo('Mot de passe reinitialise. Tu peux maintenant te connecter.');
+                setInfo('Mot de passe réinitialisé. Tu peux maintenant te connecter.');
             }
         } catch (authError) {
             setError(authError.message);
@@ -811,7 +721,7 @@ function App() {
 
     const resendVerificationEmail = async () => {
         if (!authForm.email) {
-            setError('Saisis ton email pour renvoyer la verification.');
+            setError('Saisis ton email pour renvoyer la vérification.');
             return;
         }
 
@@ -823,7 +733,7 @@ function App() {
                 method: 'POST',
                 body: { email: authForm.email },
             });
-            setInfo('Si ce compte existe et n\'est pas verifie, un email a ete renvoye.');
+            setInfo('Si ce compte existe et n’est pas vérifié, un email a été renvoyé.');
         } catch (apiError) {
             setError(apiError.message);
         } finally {
@@ -836,7 +746,7 @@ function App() {
             return;
         }
 
-        setVerificationPopupBusy(true);
+        setVerificationBusy(true);
         setError('');
 
         try {
@@ -844,11 +754,11 @@ function App() {
                 method: 'POST',
                 body: { email: user.email },
             });
-            setInfo('Email de verification renvoye.');
+            setInfo('Email de vérification renvoyé.');
         } catch (apiError) {
             setError(apiError.message);
         } finally {
-            setVerificationPopupBusy(false);
+            setVerificationBusy(false);
         }
     };
 
@@ -857,7 +767,7 @@ function App() {
             return;
         }
 
-        setVerificationPopupBusy(true);
+        setVerificationBusy(true);
         setError('');
 
         try {
@@ -865,17 +775,18 @@ function App() {
             setUser(me);
 
             if (me?.email_verified_at) {
-                setVerificationPopupVisible(false);
-                setInfo('Email confirme. Merci.');
+                setVerificationNoticeDismissed(false);
+                setInfo('Email confirmé. Merci.');
             } else {
-                setInfo('Email toujours en attente de verification.');
+                setInfo('Email toujours en attente de vérification.');
+                setVerificationNoticeDismissed(false);
             }
         } catch (apiError) {
             if (!isSessionExpiredError(apiError)) {
                 setError(apiError.message);
             }
         } finally {
-            setVerificationPopupBusy(false);
+            setVerificationBusy(false);
         }
     };
 
@@ -890,7 +801,7 @@ function App() {
             // Ignore logout errors if token is already invalid.
         }
 
-        clearSessionState('Session fermee.');
+        clearSessionState('Session fermée.');
     };
 
     const updateAccount = async (payload) => {
@@ -899,14 +810,21 @@ function App() {
         setInfo('');
 
         try {
-            const updatedUser = await apiRequestWithSession('/api/account', {
+            const responsePayload = await apiRequestWithSession('/api/account', {
                 method: 'PUT',
                 token,
                 body: payload,
             });
 
+            const updatedUser = responsePayload?.user ?? responsePayload;
+
+            if (responsePayload?.token) {
+                setToken(responsePayload.token);
+                setTokenExpiration(responsePayload.expires_at || null);
+            }
+
             setUser(updatedUser);
-            setInfo('Compte mis a jour.');
+            setInfo(responsePayload?.session_rotated ? 'Compte mis à jour. Session renouvelée.' : 'Compte mis à jour.');
             return true;
         } catch (updateError) {
             if (!isSessionExpiredError(updateError)) {
@@ -930,7 +848,7 @@ function App() {
                 body: payload,
             });
 
-            clearSessionState('Compte supprime. Toutes les donnees associees ont ete effacees.');
+            clearSessionState('Compte supprimé. Toutes les données associées ont été effacées.');
             return true;
         } catch (deleteError) {
             if (!isSessionExpiredError(deleteError)) {
@@ -1053,9 +971,6 @@ function App() {
             if (String(selectedApiaryFilter) === String(apiaryId)) {
                 setSelectedApiaryFilter('all');
             }
-            if (String(selectedReadingsApiaryFilter) === String(apiaryId)) {
-                setSelectedReadingsApiaryFilter('all');
-            }
             if (String(selectedActionsApiaryFilter) === String(apiaryId)) {
                 setSelectedActionsApiaryFilter('all');
             }
@@ -1082,14 +997,14 @@ function App() {
         event.preventDefault();
 
         if (apiaries.length === 0) {
-            setError('Cree d\'abord un rucher avant d\'ajouter des ruches.');
+            setError('Crée d’abord un rucher avant d’ajouter des ruches.');
             return false;
         }
 
         const apiaryId = Number(hiveForm.apiary_id);
 
         if (!apiaryId || Number.isNaN(apiaryId)) {
-            setError('Selectionne un rucher pour la ruche.');
+            setError('Sélectionne un rucher pour la ruche.');
             return false;
         }
 
@@ -1112,7 +1027,7 @@ function App() {
                 ...initialHiveForm,
                 apiary_id: String(apiaryId),
             });
-            setInfo('Ruche creee.');
+            setInfo('Ruche créée.');
             await refreshAll();
             return true;
         } catch (createError) {
@@ -1143,7 +1058,7 @@ function App() {
         const apiaryId = Number(editingHiveForm.apiary_id);
 
         if (!apiaryId || Number.isNaN(apiaryId)) {
-            setError('Selectionne un rucher valide avant de sauver.');
+            setError('Sélectionne un rucher valide avant de sauver.');
             return;
         }
 
@@ -1215,45 +1130,6 @@ function App() {
         }
     };
 
-    const createReading = async (event) => {
-        event.preventDefault();
-        setBusy(true);
-        setError('');
-
-        try {
-            await apiRequestWithSession('/api/readings', {
-                method: 'POST',
-                token,
-                body: {
-                    ...readingForm,
-                    hive_id: Number(readingForm.hive_id),
-                    weight_kg: parseNumber(readingForm.weight_kg),
-                    temperature_c: parseNumber(readingForm.temperature_c),
-                    humidity_percent: parseNumber(readingForm.humidity_percent),
-                    activity_index: parseNumber(readingForm.activity_index),
-                    recorded_at: new Date(readingForm.recorded_at).toISOString(),
-                },
-            });
-
-            setReadingForm((previous) => ({
-                ...initialReadingForm,
-                hive_id: previous.hive_id,
-                recorded_at: toDatetimeValue(),
-            }));
-            setInfo('Releve enregistre.');
-
-            await refreshAll();
-            if (isMobileViewport) {
-                setActiveTab(MOBILE_ACTIONS_TAB.id);
-            }
-        } catch (createError) {
-            if (!isSessionExpiredError(createError)) {
-                setError(createError.message);
-            }
-            setBusy(false);
-        }
-    };
-
     const createAction = async (event) => {
         event.preventDefault();
         setBusy(true);
@@ -1275,12 +1151,9 @@ function App() {
                 hive_id: previous.hive_id,
                 performed_at: toDatetimeValue(),
             }));
-            setInfo('Intervention enregistree.');
+            setInfo('Intervention enregistrée.');
 
             await refreshAll();
-            if (isMobileViewport) {
-                setActiveTab(MOBILE_ACTIONS_TAB.id);
-            }
         } catch (createError) {
             if (!isSessionExpiredError(createError)) {
                 setError(createError.message);
@@ -1295,70 +1168,68 @@ function App() {
                 return [ADMIN_TAB, ACCOUNT_TAB];
             }
 
-            return isMobileViewport ? [MOBILE_ACTIONS_TAB, ...TABS] : TABS;
+            return TABS;
         },
-        [isMobileViewport, user?.is_admin]
+        [user?.is_admin]
     );
 
     const currentTabLabel = useMemo(
-        () => navigationTabs.find((tab) => tab.id === activeTab)?.label || TABS.find((tab) => tab.id === activeTab)?.label || 'ApiaryHub',
+        () => navigationTabs.find((tab) => tab.id === activeTab)?.label || 'ApiaryHub',
         [navigationTabs, activeTab]
     );
 
     const currentTabDescription = useMemo(() => {
-        if (activeTab === MOBILE_ACTIONS_TAB.id) {
-            return 'Raccourcis terrain pour saisir rapidement un releve ou une intervention.';
+        if (activeTab === 'field') {
+            return 'Interventions et suivi.';
+        }
+
+        if (activeTab === 'apiaries') {
+            return 'Sites, ruches, carte.';
+        }
+
+        if (activeTab === 'journal') {
+            return 'Historique des interventions.';
+        }
+
+        if (activeTab === 'compliance') {
+            return 'Section en cours de développement.';
         }
 
         if (activeTab === ADMIN_TAB.id) {
-            return 'Pilotage des comptes et supervision globale des creations de la plateforme.';
+            return 'Comptes, ruchers, activité.';
         }
 
-        return 'Gestion multi-ruchers avec creation de ruche par selection de rucher.';
+        return 'Profil et sécurité.';
     }, [activeTab]);
 
     const renderContent = () => {
-        if (activeTab === MOBILE_ACTIONS_TAB.id) {
+        const navigateToTab = (tabId) => startTransition(() => setActiveTab(tabId));
+
+        if (activeTab === 'field') {
             return (
-                <QuickActionsTab
-                    stats={stats}
-                    recentActivity={mobileRecentActivity}
-                    onOpenReadingsForm={() => {
-                        setActiveTab('readings');
-                        setMobileMenuOpen(false);
-                    }}
-                    onOpenActionsForm={() => {
-                        setActiveTab('actions');
-                        setMobileMenuOpen(false);
-                    }}
-                    onOpenApiaries={() => {
-                        setActiveTab('apiaries');
-                        setMobileMenuOpen(false);
-                    }}
-                    onOpenHives={() => {
-                        setActiveTab('hives');
-                        setMobileMenuOpen(false);
-                    }}
-                    onOpenAccount={() => {
-                        setActiveTab('account');
-                        setMobileMenuOpen(false);
-                    }}
-                    isAdmin={Boolean(user?.is_admin)}
-                    onOpenAdmin={() => {
-                        setActiveTab('admin');
-                        setMobileMenuOpen(false);
-                    }}
+                <FieldTab
+                    apiaries={apiaries}
+                    hives={hives}
+                    recentActivity={recentActivity}
+                    actionForm={actionForm}
+                    setActionForm={setActionForm}
+                    selectedActionsApiaryFilter={selectedActionsApiaryFilter}
+                    setSelectedActionsApiaryFilter={setSelectedActionsApiaryFilter}
+                    actionsHives={actionsHives}
+                    createAction={createAction}
+                    busy={busy}
+                    userNeedsEmailVerification={userNeedsEmailVerification}
+                    onOpenApiaries={() => navigateToTab('apiaries')}
+                    onOpenJournal={() => navigateToTab('journal')}
+                    onOpenCompliance={() => navigateToTab('compliance')}
                 />
             );
         }
 
-        if (activeTab === 'overview') {
-            return <OverviewTab stats={stats} readings={readings} />;
-        }
-
         if (activeTab === 'apiaries') {
             return (
-                <ApiariesTab
+                <OperationsTab
+                    stats={stats}
                     apiaries={apiaries}
                     apiaryForm={apiaryForm}
                     setApiaryForm={setApiaryForm}
@@ -1377,18 +1248,9 @@ function App() {
                     clearApiaryLocation={clearApiaryLocation}
                     selectEditingApiaryLocation={selectEditingApiaryLocation}
                     clearEditingApiaryLocation={clearEditingApiaryLocation}
-                />
-            );
-        }
-
-        if (activeTab === 'hives') {
-            return (
-                <HivesTab
                     hiveForm={hiveForm}
                     setHiveForm={setHiveForm}
                     createHive={createHive}
-                    busy={busy}
-                    apiaries={apiaries}
                     selectedApiaryFilter={selectedApiaryFilter}
                     setSelectedApiaryFilter={setSelectedApiaryFilter}
                     setError={setError}
@@ -1408,47 +1270,43 @@ function App() {
             );
         }
 
-        if (activeTab === 'readings') {
+        if (activeTab === 'journal') {
             return (
-                <ReadingsTab
-                    createReading={createReading}
-                    readingForm={readingForm}
-                    setReadingForm={setReadingForm}
-                    hives={readingsHives}
+                <JournalTab
                     apiaries={apiaries}
-                    selectedApiaryFilter={selectedReadingsApiaryFilter}
-                    setSelectedApiaryFilter={setSelectedReadingsApiaryFilter}
-                    readings={readings}
-                    busy={busy}
-                    showHistory={!isMobileViewport}
-                    onBack={isMobileViewport ? () => setActiveTab(MOBILE_ACTIONS_TAB.id) : null}
+                    hives={hives}
+                    actions={actions}
+                    onOpenField={() => navigateToTab('field')}
                 />
             );
         }
 
-        if (activeTab === 'actions') {
+        if (activeTab === 'compliance') {
             return (
-                <ActionsTab
-                    createAction={createAction}
-                    actionForm={actionForm}
-                    setActionForm={setActionForm}
-                    hives={actionsHives}
-                    apiaries={apiaries}
-                    selectedApiaryFilter={selectedActionsApiaryFilter}
-                    setSelectedApiaryFilter={setSelectedActionsApiaryFilter}
-                    actions={actions}
-                    busy={busy}
-                    showHistory={!isMobileViewport}
-                    onBack={isMobileViewport ? () => setActiveTab(MOBILE_ACTIONS_TAB.id) : null}
+                <ComplianceTab
+                    onOpenField={() => navigateToTab('field')}
                 />
             );
         }
 
         if (activeTab === ADMIN_TAB.id) {
             if (!user?.is_admin) {
-                return (
-                    <OverviewTab stats={stats} readings={readings} />
-                );
+                return <FieldTab
+                    apiaries={apiaries}
+                    hives={hives}
+                    recentActivity={recentActivity}
+                    actionForm={actionForm}
+                    setActionForm={setActionForm}
+                    selectedActionsApiaryFilter={selectedActionsApiaryFilter}
+                    setSelectedActionsApiaryFilter={setSelectedActionsApiaryFilter}
+                    actionsHives={actionsHives}
+                    createAction={createAction}
+                    busy={busy}
+                    userNeedsEmailVerification={userNeedsEmailVerification}
+                    onOpenApiaries={() => navigateToTab('apiaries')}
+                    onOpenJournal={() => navigateToTab('journal')}
+                    onOpenCompliance={() => navigateToTab('compliance')}
+                />;
             }
 
             return (
@@ -1472,189 +1330,64 @@ function App() {
     };
 
     return (
-        <main className={token ? 'page-wrap app-authenticated' : 'page-wrap'}>
+        <main className="min-h-svh overflow-x-clip">
             {(error || info) && (
-                <div className="flash-stack">
-                    {error && <div className="flash error" role="alert">{error}</div>}
-                    {info && <div className="flash info" role="status">{info}</div>}
-                </div>
-            )}
-
-            {token && userNeedsEmailVerification && verificationPopupVisible && (
-                <div className="verification-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="verify-email-title">
-                    <section className="verification-modal panel">
-                        <h2 id="verify-email-title">Verification email requise</h2>
-                        <p className="muted small">
-                            Ton compte est connecte, mais ton email n&apos;est pas encore confirme. Verifie ta boite mail pour finaliser ton acces.
-                        </p>
-                        <p className="muted small">
-                            Adresse: <strong>{user?.email}</strong>
-                        </p>
-                        <div className="row actions">
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={resendVerificationEmailForConnectedUser}
-                                disabled={verificationPopupBusy}
-                            >
-                                Renvoyer l&apos;email
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={checkVerificationStatus}
-                                disabled={verificationPopupBusy}
-                            >
-                                J&apos;ai confirme, verifier
-                            </button>
-                            <button
-                                type="button"
-                                className="btn"
-                                onClick={() => setVerificationPopupVisible(false)}
-                                disabled={verificationPopupBusy}
-                            >
-                                Me le rappeler plus tard
-                            </button>
+                <div className="fixed right-4 top-4 z-80 grid w-[min(92vw,26rem)] gap-3">
+                    {error ? (
+                        <div
+                            className="radius-subpanel border border-destructive/25 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(146,46,32,0.55)] backdrop-blur"
+                            role="alert"
+                        >
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-destructive">Erreur</p>
+                            <p className="mt-2 text-sm leading-6 text-foreground">{error}</p>
                         </div>
-                    </section>
+                    ) : null}
+                    {info ? (
+                        <div
+                            className="radius-subpanel border border-primary/20 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(31,73,57,0.45)] backdrop-blur"
+                            role="status"
+                        >
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Info</p>
+                            <p className="mt-2 text-sm leading-6 text-foreground">{info}</p>
+                        </div>
+                    ) : null}
                 </div>
             )}
 
             {!token ? (
-                <AuthPanel
-                    authMode={authMode}
-                    setAuthMode={setAuthMode}
-                    authForm={authForm}
-                    setAuthForm={setAuthForm}
-                    submitAuth={submitAuth}
-                    resendVerificationEmail={resendVerificationEmail}
-                    busy={busy}
-                />
-            ) : (
-                <div className={isMobileViewport ? 'dashboard-shell mobile-actions-shell' : (mobileMenuOpen ? 'dashboard-shell menu-open' : 'dashboard-shell')}>
-                    {!isMobileViewport && (
-                        <>
-                            <button
-                                type="button"
-                                className={mobileMenuOpen ? 'mobile-backdrop visible' : 'mobile-backdrop'}
-                                aria-label="Fermer le menu"
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setMobileMenuOpen(false);
-                                }}
-                            />
-
-                            <aside className={mobileMenuOpen ? 'sidebar panel open' : 'sidebar panel'}>
-                                <div className="sidebar-top">
-                                    <div className="brand-block">
-                                        <img
-                                            className="sidebar-logo-full"
-                                            src={BRAND_LOGO_FULL}
-                                            alt="ApiaryHub"
-                                        />
-                                        <h2>{user?.name ?? 'apiculteur'}</h2>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="btn mobile-close"
-                                        onClick={(event) => {
-                                            event.preventDefault();
-                                            event.stopPropagation();
-                                            setMobileMenuOpen(false);
-                                        }}
-                                    >
-                                        Fermer
-                                    </button>
-                                </div>
-                                <nav className="tab-nav">
-                                    {navigationTabs.map((tab) => (
-                                        <button
-                                            key={tab.id}
-                                            type="button"
-                                            className={activeTab === tab.id ? 'tab-link active' : 'tab-link'}
-                                            onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                setActiveTab(tab.id);
-                                                setMobileMenuOpen(false);
-                                            }}
-                                        >
-                                            {tab.label}
-                                        </button>
-                                    ))}
-                                </nav>
-                                <div className="sidebar-actions">
-                                    <button
-                                        type="button"
-                                        className="btn btn-danger"
-                                        onClick={async () => {
-                                            setMobileMenuOpen(false);
-                                            await logout();
-                                        }}
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            </aside>
-                        </>
-                    )}
-
-                    <section className={isMobileViewport ? 'workspace mobile-workspace' : 'workspace'}>
-                        <header className={isMobileViewport ? 'workspace-header workspace-header-mobile panel' : 'workspace-header panel gradient-panel'}>
-                            <div>
-                                <div className="workspace-header-top">
-                                    {isMobileViewport ? (
-                                        <>
-                                            <div className="workspace-brand-mobile">
-                                                <img
-                                                    className="workspace-brand-mark"
-                                                    src={BRAND_LOGO_MARK}
-                                                    alt="ApiaryHub"
-                                                />
-                                                <p className="kicker">ApiaryHub Actions</p>
-                                            </div>
-                                            {!user?.is_admin && activeTab !== MOBILE_ACTIONS_TAB.id && (
-                                                <button
-                                                    type="button"
-                                                    className="btn mobile-action-back"
-                                                    onClick={() => setActiveTab(MOBILE_ACTIONS_TAB.id)}
-                                                >
-                                                    Retour actions
-                                                </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                type="button"
-                                                className="btn mobile-menu-trigger"
-                                                aria-label="Ouvrir le menu"
-                                                aria-expanded={mobileMenuOpen}
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    setMobileMenuOpen(true);
-                                                }}
-                                                disabled={mobileMenuOpen}
-                                            >
-                                                Menu
-                                            </button>
-                                            <img
-                                                className="workspace-brand-logo"
-                                                src={BRAND_LOGO_FULL}
-                                                alt="ApiaryHub"
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                                <h1>{currentTabLabel}</h1>
-                                <p className={isMobileViewport ? 'muted small' : ''}>{currentTabDescription}</p>
-                            </div>
-                        </header>
-                        {renderContent()}
-                    </section>
+                <div className="mx-auto max-w-400 ">
+                    <AuthPanel
+                        authMode={authMode}
+                        setAuthMode={setAuthMode}
+                        authForm={authForm}
+                        setAuthForm={setAuthForm}
+                        submitAuth={submitAuth}
+                        resendVerificationEmail={resendVerificationEmail}
+                        busy={busy}
+                    />
                 </div>
+            ) : (
+                <AppShell
+                    brandLogo={BRAND_LOGO_FULL}
+                    user={user}
+                    navigationTabs={navigationTabs}
+                    activeTab={activeTab}
+                    onTabChange={(tabId) => startTransition(() => setActiveTab(tabId))}
+                    currentTabLabel={currentTabLabel}
+                    currentTabDescription={currentTabDescription}
+                    stats={stats}
+                    userNeedsEmailVerification={userNeedsEmailVerification}
+                    showVerificationNotice={userNeedsEmailVerification && !verificationNoticeDismissed}
+                    verificationBusy={verificationBusy}
+                    onResendVerification={resendVerificationEmailForConnectedUser}
+                    onCheckVerification={checkVerificationStatus}
+                    onDismissVerification={() => setVerificationNoticeDismissed(true)}
+                    onLogout={logout}
+                >
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        {renderContent()}
+                    </Suspense>
+                </AppShell>
             )}
         </main>
     );
