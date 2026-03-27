@@ -109,7 +109,7 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE:-apiaryhub}
       MYSQL_USER: ${DB_USERNAME:-apiaryhub}
       MYSQL_PASSWORD: ${DB_PASSWORD:-password-db}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password-db}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password-db-root}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
