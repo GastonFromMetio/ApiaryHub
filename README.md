@@ -39,6 +39,8 @@ Variables principales a fournir dans Dokploy:
 APP_KEY=base64:...
 APP_ENV=production
 APP_DEBUG=false
+LOG_CHANNEL=stderr
+LOG_LEVEL=debug
 APP_URL=https://apiaryhub.metio-dev.fr
 APP_AUTO_SEED=false
 SESSION_SECURE_COOKIE=true
@@ -69,6 +71,7 @@ Note importante:
 - sur Dokploy, renseigne explicitement `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` et `MYSQL_ROOT_PASSWORD`; ne compte pas sur les valeurs par defaut en production
 - sur Dokploy, l'interface `Environment` est la source de verite; l'image Docker n'embarque plus de `.env` initialise depuis `.env.example`
 - avec `SYNC_ENV_FILE=true`, l'entrypoint ecrit les variables runtime critiques dans `/var/www/html/.env` pour garder Laravel aligne avec la config Dokploy
+- en production, cette application doit tourner sur MySQL; SQLite n'est plus utilise comme fallback par defaut
 - si le volume MySQL existe deja, changer `DB_USERNAME` ou `DB_PASSWORD` dans Dokploy ne met pas a jour automatiquement l'utilisateur MySQL deja cree; il faut soit recreer le volume, soit modifier l'utilisateur/mot de passe dans MySQL
 
 DNS attendu:

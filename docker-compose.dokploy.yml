@@ -14,6 +14,8 @@ services:
       APP_KEY: ${APP_KEY:-}
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: "${APP_DEBUG:-false}"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       APP_URL: ${APP_URL:-https://apiaryhub.metio-dev.fr}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
@@ -68,6 +70,8 @@ services:
       APP_KEY: ${APP_KEY:-}
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: "${APP_DEBUG:-false}"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       APP_URL: ${APP_URL:-https://apiaryhub.metio-dev.fr}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
