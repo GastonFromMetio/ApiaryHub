@@ -127,7 +127,9 @@ function App() {
     const [weatherByHive, setWeatherByHive] = useState({});
     const [adminDashboard, setAdminDashboard] = useState(null);
     const [adminLoading, setAdminLoading] = useState(false);
+    const [selectedAdminUserFilter, setSelectedAdminUserFilter] = useState('all');
     const [selectedAdminApiaryFilter, setSelectedAdminApiaryFilter] = useState('all');
+    const [selectedAdminHiveFilter, setSelectedAdminHiveFilter] = useState('all');
 
     const [authMode, setAuthMode] = useState('login');
     const [authForm, setAuthForm] = useState({
@@ -293,18 +295,31 @@ function App() {
         };
     };
 
-    const buildAdminQuery = () => {
-        if (selectedAdminApiaryFilter === 'all') {
-            return '';
+    const buildAdminQuery = (filters = {
+        userId: selectedAdminUserFilter,
+        apiaryId: selectedAdminApiaryFilter,
+        hiveId: selectedAdminHiveFilter,
+    }) => {
+        const params = new URLSearchParams();
+        const userId = Number(filters.userId);
+        const apiaryId = Number(filters.apiaryId);
+        const hiveId = Number(filters.hiveId);
+
+        if (filters.userId !== 'all' && userId && !Number.isNaN(userId)) {
+            params.set('user_id', String(userId));
         }
 
-        const apiaryId = Number(selectedAdminApiaryFilter);
-
-        if (!apiaryId || Number.isNaN(apiaryId)) {
-            return '';
+        if (filters.apiaryId !== 'all' && apiaryId && !Number.isNaN(apiaryId)) {
+            params.set('apiary_id', String(apiaryId));
         }
 
-        return `?apiary_id=${apiaryId}`;
+        if (filters.hiveId !== 'all' && hiveId && !Number.isNaN(hiveId)) {
+            params.set('hive_id', String(hiveId));
+        }
+
+        const queryString = params.toString();
+
+        return queryString ? `?${queryString}` : '';
     };
 
     const syncHiveSelection = (previous, availableHives) => {
@@ -552,6 +567,45 @@ function App() {
         setActionForm((previous) => syncHiveSelection(previous, actionsHives));
     }, [actionsHives]);
 
+    useEffect(() => {
+        if (!adminDashboard || selectedAdminUserFilter === 'all') {
+            return;
+        }
+
+        const userOptions = adminDashboard.user_options || [];
+        const exists = userOptions.some((option) => String(option.id) === String(selectedAdminUserFilter));
+
+        if (!exists) {
+            setSelectedAdminUserFilter('all');
+        }
+    }, [adminDashboard, selectedAdminUserFilter]);
+
+    useEffect(() => {
+        if (!adminDashboard || selectedAdminApiaryFilter === 'all') {
+            return;
+        }
+
+        const apiaryOptions = adminDashboard.apiary_options || [];
+        const exists = apiaryOptions.some((option) => String(option.id) === String(selectedAdminApiaryFilter));
+
+        if (!exists) {
+            setSelectedAdminApiaryFilter('all');
+        }
+    }, [adminDashboard, selectedAdminApiaryFilter]);
+
+    useEffect(() => {
+        if (!adminDashboard || selectedAdminHiveFilter === 'all') {
+            return;
+        }
+
+        const hiveOptions = adminDashboard.hive_options || [];
+        const exists = hiveOptions.some((option) => String(option.id) === String(selectedAdminHiveFilter));
+
+        if (!exists) {
+            setSelectedAdminHiveFilter('all');
+        }
+    }, [adminDashboard, selectedAdminHiveFilter]);
+
     const clearSessionState = (message) => {
         setBusy(false);
         setVerificationBusy(false);
@@ -569,9 +623,11 @@ function App() {
         setEditingApiaryId(null);
         setEditingHiveId(null);
         setActiveTab('field');
+        setSelectedAdminUserFilter('all');
         setSelectedApiaryFilter('all');
         setSelectedActionsApiaryFilter('all');
         setSelectedAdminApiaryFilter('all');
+        setSelectedAdminHiveFilter('all');
         setInfo(message);
     };
 
@@ -635,7 +691,7 @@ function App() {
         }
 
         refreshAdminDashboard();
-    }, [selectedAdminApiaryFilter]);
+    }, [selectedAdminUserFilter, selectedAdminApiaryFilter, selectedAdminHiveFilter]);
 
     const submitAuth = async (event) => {
         event.preventDefault();
@@ -849,6 +905,45 @@ function App() {
             });
 
             clearSessionState('Compte supprimé. Toutes les données associées ont été effacées.');
+            return true;
+        } catch (deleteError) {
+            if (!isSessionExpiredError(deleteError)) {
+                setError(deleteError.message);
+            }
+            return false;
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const deleteAdminUser = async (targetUser) => {
+        if (!targetUser?.id) {
+            return false;
+        }
+
+        setBusy(true);
+        setError('');
+        setInfo('');
+
+        try {
+            await apiRequestWithSession(`/api/admin/users/${targetUser.id}`, {
+                method: 'DELETE',
+                token,
+            });
+
+            const resetAdminFilters = {
+                userId: 'all',
+                apiaryId: 'all',
+                hiveId: 'all',
+            };
+
+            setSelectedAdminUserFilter('all');
+            setSelectedAdminApiaryFilter('all');
+            setSelectedAdminHiveFilter('all');
+
+            const adminData = await apiRequestWithSession(`/api/admin/dashboard${buildAdminQuery(resetAdminFilters)}`, { token });
+            setAdminDashboard(adminData);
+            setInfo(`Compte ${targetUser.email || targetUser.name || `#${targetUser.id}`} supprimé.`);
             return true;
         } catch (deleteError) {
             if (!isSessionExpiredError(deleteError)) {
@@ -1312,8 +1407,22 @@ function App() {
             return (
                 <AdminTab
                     data={adminDashboard}
+                    currentUserId={user?.id}
+                    busy={busy}
+                    selectedUserFilter={selectedAdminUserFilter}
                     selectedApiaryFilter={selectedAdminApiaryFilter}
-                    onApiaryFilterChange={setSelectedAdminApiaryFilter}
+                    selectedHiveFilter={selectedAdminHiveFilter}
+                    onDeleteUser={deleteAdminUser}
+                    onUserFilterChange={(value) => {
+                        setSelectedAdminUserFilter(value);
+                        setSelectedAdminApiaryFilter('all');
+                        setSelectedAdminHiveFilter('all');
+                    }}
+                    onApiaryFilterChange={(value) => {
+                        setSelectedAdminApiaryFilter(value);
+                        setSelectedAdminHiveFilter('all');
+                    }}
+                    onHiveFilterChange={setSelectedAdminHiveFilter}
                 />
             );
         }

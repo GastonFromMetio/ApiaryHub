@@ -102,16 +102,18 @@ export function AppShell({
                                 </p>
                             </div>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-sidebar-foreground/72">
-                            <div className="radius-subpanel border border-sidebar-border/60 bg-sidebar/55 p-3">
-                                <p className="uppercase tracking-[0.22em] text-sidebar-foreground/55">Ruches</p>
-                                <p className="mt-1 text-xl font-semibold text-sidebar-foreground">{stats.hiveCount}</p>
+                        {!user?.is_admin ? (
+                            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-sidebar-foreground/72">
+                                <div className="radius-subpanel border border-sidebar-border/60 bg-sidebar/55 p-3">
+                                    <p className="uppercase tracking-[0.22em] text-sidebar-foreground/55">Ruches</p>
+                                    <p className="mt-1 text-xl font-semibold text-sidebar-foreground">{stats.hiveCount}</p>
+                                </div>
+                                <div className="radius-subpanel border border-sidebar-border/60 bg-sidebar/55 p-3">
+                                    <p className="uppercase tracking-[0.22em] text-sidebar-foreground/55">Actions</p>
+                                    <p className="mt-1 text-xl font-semibold text-sidebar-foreground">{stats.actionCount}</p>
+                                </div>
                             </div>
-                            <div className="radius-subpanel border border-sidebar-border/60 bg-sidebar/55 p-3">
-                                <p className="uppercase tracking-[0.22em] text-sidebar-foreground/55">Actions</p>
-                                <p className="mt-1 text-xl font-semibold text-sidebar-foreground">{stats.actionCount}</p>
-                            </div>
-                        </div>
+                        ) : null}
                     </div>
                 </SidebarHeader>
 

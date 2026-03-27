@@ -9,6 +9,7 @@ use App\Models\Hive;
 use App\Models\Reading;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -19,60 +20,105 @@ class AdminDashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'apiary_id' => ['nullable', 'integer', 'exists:apiaries,id'],
+            'hive_id' => ['nullable', 'integer', 'exists:hives,id'],
         ]);
 
+        $selectedUserId = array_key_exists('user_id', $validated)
+            ? (int) $validated['user_id']
+            : null;
         $selectedApiaryId = array_key_exists('apiary_id', $validated)
             ? (int) $validated['apiary_id']
             : null;
+        $selectedHiveId = array_key_exists('hive_id', $validated)
+            ? (int) $validated['hive_id']
+            : null;
 
-        $users = User::query()
+        $users = $this->applyUserFilters(
+            User::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->select(['id', 'name', 'email', 'is_admin', 'created_at'])
             ->latest()
             ->get();
 
+        $userOptions = User::query()
+            ->select(['id', 'name', 'email'])
+            ->orderBy('name')
+            ->get();
+
         $apiaryOptions = Apiary::query()
             ->with('user:id,name,email')
+            ->when($selectedUserId, fn (Builder $query) => $query->where('user_id', $selectedUserId))
             ->orderBy('name')
             ->get(['id', 'user_id', 'name']);
 
-        $apiaryCounts = Apiary::query()
+        $hiveOptions = $this->applyHiveFilters(
+            Hive::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            null
+        )
+            ->with(['user:id,name,email', 'apiaryEntity:id,name'])
+            ->orderBy('name')
+            ->get(['id', 'user_id', 'apiary_id', 'name', 'status']);
+
+        $apiaryCounts = $this->applyApiaryFilters(
+            Apiary::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('user_id, COUNT(*) as total')
-            ->when($selectedApiaryId, fn ($query) => $query->where('id', $selectedApiaryId))
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
 
-        $hiveCounts = Hive::query()
+        $hiveCounts = $this->applyHiveFilters(
+            Hive::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('user_id, COUNT(*) as total')
-            ->when($selectedApiaryId, fn ($query) => $query->where('apiary_id', $selectedApiaryId))
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
 
-        $readingCounts = Reading::query()
-            ->join('hives', 'hives.id', '=', 'readings.hive_id')
+        $readingCounts = $this->filteredReadingsQuery(
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('hives.user_id, COUNT(readings.id) as total')
-            ->when($selectedApiaryId, fn ($query) => $query->where('hives.apiary_id', $selectedApiaryId))
             ->groupBy('hives.user_id')
             ->pluck('total', 'hives.user_id');
 
-        $actionCounts = Action::query()
-            ->join('hives', 'hives.id', '=', 'actions.hive_id')
+        $actionCounts = $this->filteredActionsQuery(
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('hives.user_id, COUNT(actions.id) as total')
-            ->when($selectedApiaryId, fn ($query) => $query->where('hives.apiary_id', $selectedApiaryId))
             ->groupBy('hives.user_id')
             ->pluck('total', 'hives.user_id');
 
-        $lastReadingAtByUser = Reading::query()
-            ->join('hives', 'hives.id', '=', 'readings.hive_id')
+        $lastReadingAtByUser = $this->filteredReadingsQuery(
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('hives.user_id, MAX(readings.recorded_at) as last_at')
-            ->when($selectedApiaryId, fn ($query) => $query->where('hives.apiary_id', $selectedApiaryId))
             ->groupBy('hives.user_id')
             ->pluck('last_at', 'hives.user_id');
 
-        $lastActionAtByUser = Action::query()
-            ->join('hives', 'hives.id', '=', 'actions.hive_id')
+        $lastActionAtByUser = $this->filteredActionsQuery(
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->selectRaw('hives.user_id, MAX(actions.performed_at) as last_at')
-            ->when($selectedApiaryId, fn ($query) => $query->where('hives.apiary_id', $selectedApiaryId))
             ->groupBy('hives.user_id')
             ->pluck('last_at', 'hives.user_id');
 
@@ -102,16 +148,46 @@ class AdminDashboardController extends Controller
             ];
         })->sortByDesc('last_activity_at')->values();
 
-        $recentApiaries = Apiary::query()
+        $apiaries = $this->applyApiaryFilters(
+            Apiary::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->with(['user:id,name,email'])
-            ->when($selectedApiaryId, fn ($query) => $query->where('id', $selectedApiaryId))
+            ->withCount('hives')
+            ->latest()
+            ->get(['id', 'user_id', 'name', 'latitude', 'longitude', 'created_at']);
+
+        $hives = $this->applyHiveFilters(
+            Hive::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
+            ->with(['user:id,name,email', 'apiaryEntity:id,name'])
+            ->withCount(['readings', 'actions'])
+            ->latest()
+            ->get(['id', 'user_id', 'apiary_id', 'name', 'status', 'latitude', 'longitude', 'created_at']);
+
+        $recentApiaries = $this->applyApiaryFilters(
+            Apiary::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
+            ->with(['user:id,name,email'])
             ->latest()
             ->limit(8)
             ->get(['id', 'user_id', 'name', 'created_at']);
 
-        $recentHives = Hive::query()
+        $recentHives = $this->applyHiveFilters(
+            Hive::query(),
+            $selectedUserId,
+            $selectedApiaryId,
+            $selectedHiveId
+        )
             ->with(['user:id,name,email', 'apiaryEntity:id,name'])
-            ->when($selectedApiaryId, fn ($query) => $query->where('apiary_id', $selectedApiaryId))
             ->latest()
             ->limit(8)
             ->get(['id', 'user_id', 'apiary_id', 'name', 'status', 'created_at']);
@@ -122,9 +198,12 @@ class AdminDashboardController extends Controller
                 'hive.user:id,name,email',
                 'hive.apiaryEntity:id,name',
             ])
-            ->when($selectedApiaryId, function ($query) use ($selectedApiaryId) {
-                $query->whereHas('hive', fn ($hiveQuery) => $hiveQuery->where('apiary_id', $selectedApiaryId));
-            })
+            ->whereHas('hive', fn (Builder $query) => $this->applyHiveFilters(
+                $query,
+                $selectedUserId,
+                $selectedApiaryId,
+                $selectedHiveId
+            ))
             ->latest('created_at')
             ->limit(8)
             ->get(['id', 'hive_id', 'weight_kg', 'temperature_c', 'humidity_percent', 'activity_index', 'recorded_at', 'created_at']);
@@ -135,37 +214,42 @@ class AdminDashboardController extends Controller
                 'hive.user:id,name,email',
                 'hive.apiaryEntity:id,name',
             ])
-            ->when($selectedApiaryId, function ($query) use ($selectedApiaryId) {
-                $query->whereHas('hive', fn ($hiveQuery) => $hiveQuery->where('apiary_id', $selectedApiaryId));
-            })
+            ->whereHas('hive', fn (Builder $query) => $this->applyHiveFilters(
+                $query,
+                $selectedUserId,
+                $selectedApiaryId,
+                $selectedHiveId
+            ))
             ->latest('created_at')
             ->limit(8)
             ->get(['id', 'hive_id', 'type', 'description', 'performed_at', 'created_at']);
 
-        $activityByDay = $this->buildActivityByDay($selectedApiaryId);
+        $activityByDay = $this->buildActivityByDay($selectedUserId, $selectedApiaryId, $selectedHiveId);
         $activeUsers = $people->filter(
             fn (array $person) => ($person['readings_count'] + $person['actions_count']) > 0
         )->count();
 
         return response()->json([
             'filters' => [
+                'user_id' => $selectedUserId,
                 'apiary_id' => $selectedApiaryId,
+                'hive_id' => $selectedHiveId,
             ],
+            'user_options' => $userOptions,
             'apiary_options' => $apiaryOptions,
+            'hive_options' => $hiveOptions,
             'stats' => [
                 'accounts' => $people->count(),
                 'admins' => $users->where('is_admin', true)->count(),
                 'active_users' => $activeUsers,
-                'apiaries' => $selectedApiaryId ? $recentApiaries->count() : Apiary::count(),
-                'hives' => $selectedApiaryId ? Hive::where('apiary_id', $selectedApiaryId)->count() : Hive::count(),
-                'readings' => $selectedApiaryId
-                    ? Reading::whereHas('hive', fn ($query) => $query->where('apiary_id', $selectedApiaryId))->count()
-                    : Reading::count(),
-                'actions' => $selectedApiaryId
-                    ? Action::whereHas('hive', fn ($query) => $query->where('apiary_id', $selectedApiaryId))->count()
-                    : Action::count(),
+                'apiaries' => $apiaries->count(),
+                'hives' => $hives->count(),
+                'readings' => (int) $readingCounts->sum(),
+                'actions' => (int) $actionCounts->sum(),
             ],
             'people' => $people,
+            'apiaries' => $apiaries,
+            'hives' => $hives,
             'recent_creations' => [
                 'apiaries' => $recentApiaries,
                 'hives' => $recentHives,
@@ -192,22 +276,18 @@ class AdminDashboardController extends Controller
         return $readingDate->greaterThan($actionDate) ? $readingDate : $actionDate;
     }
 
-    private function buildActivityByDay(?int $apiaryId): Collection
+    private function buildActivityByDay(?int $userId, ?int $apiaryId, ?int $hiveId): Collection
     {
         $from = now()->subDays(6)->startOfDay();
 
-        $readings = Reading::query()
-            ->join('hives', 'hives.id', '=', 'readings.hive_id')
+        $readings = $this->filteredReadingsQuery($userId, $apiaryId, $hiveId)
             ->where('readings.recorded_at', '>=', $from)
-            ->when($apiaryId, fn ($query) => $query->where('hives.apiary_id', $apiaryId))
             ->selectRaw('DATE(readings.recorded_at) as day, COUNT(readings.id) as total')
             ->groupBy(DB::raw('DATE(readings.recorded_at)'))
             ->pluck('total', 'day');
 
-        $actions = Action::query()
-            ->join('hives', 'hives.id', '=', 'actions.hive_id')
+        $actions = $this->filteredActionsQuery($userId, $apiaryId, $hiveId)
             ->where('actions.performed_at', '>=', $from)
-            ->when($apiaryId, fn ($query) => $query->where('hives.apiary_id', $apiaryId))
             ->selectRaw('DATE(actions.performed_at) as day, COUNT(actions.id) as total')
             ->groupBy(DB::raw('DATE(actions.performed_at)'))
             ->pluck('total', 'day');
@@ -224,5 +304,56 @@ class AdminDashboardController extends Controller
                 'total' => $readingsCount + $actionsCount,
             ];
         });
+    }
+
+    private function applyUserFilters(Builder $query, ?int $userId, ?int $apiaryId, ?int $hiveId): Builder
+    {
+        return $query
+            ->when($userId, fn (Builder $builder) => $builder->whereKey($userId))
+            ->when($apiaryId, fn (Builder $builder) => $builder->whereHas(
+                'apiaries',
+                fn (Builder $apiaryQuery) => $apiaryQuery->whereKey($apiaryId)
+            ))
+            ->when($hiveId, fn (Builder $builder) => $builder->whereHas(
+                'hives',
+                fn (Builder $hiveQuery) => $hiveQuery->whereKey($hiveId)
+            ));
+    }
+
+    private function applyApiaryFilters(Builder $query, ?int $userId, ?int $apiaryId, ?int $hiveId): Builder
+    {
+        return $query
+            ->when($userId, fn (Builder $builder) => $builder->where('user_id', $userId))
+            ->when($apiaryId, fn (Builder $builder) => $builder->whereKey($apiaryId))
+            ->when($hiveId, fn (Builder $builder) => $builder->whereHas(
+                'hives',
+                fn (Builder $hiveQuery) => $hiveQuery->whereKey($hiveId)
+            ));
+    }
+
+    private function applyHiveFilters(Builder $query, ?int $userId, ?int $apiaryId, ?int $hiveId): Builder
+    {
+        return $query
+            ->when($userId, fn (Builder $builder) => $builder->where('user_id', $userId))
+            ->when($apiaryId, fn (Builder $builder) => $builder->where('apiary_id', $apiaryId))
+            ->when($hiveId, fn (Builder $builder) => $builder->whereKey($hiveId));
+    }
+
+    private function filteredReadingsQuery(?int $userId, ?int $apiaryId, ?int $hiveId): Builder
+    {
+        return Reading::query()
+            ->join('hives', 'hives.id', '=', 'readings.hive_id')
+            ->when($userId, fn (Builder $query) => $query->where('hives.user_id', $userId))
+            ->when($apiaryId, fn (Builder $query) => $query->where('hives.apiary_id', $apiaryId))
+            ->when($hiveId, fn (Builder $query) => $query->where('readings.hive_id', $hiveId));
+    }
+
+    private function filteredActionsQuery(?int $userId, ?int $apiaryId, ?int $hiveId): Builder
+    {
+        return Action::query()
+            ->join('hives', 'hives.id', '=', 'actions.hive_id')
+            ->when($userId, fn (Builder $query) => $query->where('hives.user_id', $userId))
+            ->when($apiaryId, fn (Builder $query) => $query->where('hives.apiary_id', $apiaryId))
+            ->when($hiveId, fn (Builder $query) => $query->where('actions.hive_id', $hiveId));
     }
 }
