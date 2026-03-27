@@ -39,9 +39,20 @@ export function AccountTab({
             name: profileForm.name.trim(),
             email: profileForm.email.trim(),
         };
+        const emailChanged = payload.email !== (user?.email ?? "");
+        const passwordChanged = Boolean(profileForm.password);
+        const requiresCurrentPassword = emailChanged || passwordChanged;
 
-        if (profileForm.password) {
+        if (requiresCurrentPassword && !profileForm.current_password) {
+            setError("Saisis ton mot de passe actuel pour confirmer ce changement.");
+            return;
+        }
+
+        if (requiresCurrentPassword) {
             payload.current_password = profileForm.current_password;
+        }
+
+        if (passwordChanged) {
             payload.password = profileForm.password;
             payload.password_confirmation = profileForm.password_confirmation;
         }
@@ -135,7 +146,7 @@ export function AccountTab({
                             Enregistrer mes informations
                         </Button>
                         <p className="text-sm text-muted-foreground">
-                            Les changements d email ou de mot de passe sont appliques immediatement si la validation reussit.
+                            Les changements d email ou de mot de passe demandent maintenant le mot de passe actuel et renouvellent la session.
                         </p>
                     </div>
                 </form>

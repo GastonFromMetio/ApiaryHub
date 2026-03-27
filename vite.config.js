@@ -4,6 +4,12 @@ import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
+const devPort = Number(process.env.VITE_DEV_PORT ?? 5173);
+const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+const hmrHost = process.env.VITE_HMR_HOST ?? 'localhost';
+const hmrPort = Number(process.env.VITE_HMR_PORT ?? devPort);
+const usePolling = process.env.VITE_USE_POLLING === 'true';
+
 export default defineConfig({
     plugins: [
         react(),
@@ -51,7 +57,22 @@ export default defineConfig({
         },
     },
     server: {
+        host: '0.0.0.0',
+        port: devPort,
+        strictPort: true,
+        origin: devServerUrl,
+        cors: {
+            origin: [
+                'http://localhost:8000',
+                'http://127.0.0.1:8000',
+            ],
+        },
+        hmr: {
+            host: hmrHost,
+            port: hmrPort,
+        },
         watch: {
+            usePolling,
             ignored: ['**/storage/framework/views/**'],
         },
     },

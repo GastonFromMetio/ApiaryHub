@@ -14,7 +14,6 @@ services:
       APP_DEBUG: "${APP_DEBUG:-false}"
       APP_URL: ${APP_URL:-https://apiaryhub.fr}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
-      ALLOW_DEMO_SEED: "${ALLOW_DEMO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
       SESSION_DOMAIN: ${SESSION_DOMAIN:-apiaryhub.fr}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-apiaryhub.fr,www.apiaryhub.fr}
@@ -67,7 +66,6 @@ services:
       APP_DEBUG: "${APP_DEBUG:-false}"
       APP_URL: ${APP_URL:-https://apiaryhub.fr}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
-      ALLOW_DEMO_SEED: "${ALLOW_DEMO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-true}"
       SESSION_DOMAIN: ${SESSION_DOMAIN:-apiaryhub.fr}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-apiaryhub.fr,www.apiaryhub.fr}

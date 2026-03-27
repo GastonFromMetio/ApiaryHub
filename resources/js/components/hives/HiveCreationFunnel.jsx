@@ -51,7 +51,7 @@ export function HiveCreationFunnel({
                 />
             ) : (
                 <form className="grid gap-5" onSubmit={submitHive}>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
                         <FieldBlock label="Nom de la ruche">
                             <Input
                                 value={hiveForm.name}
@@ -61,32 +61,43 @@ export function HiveCreationFunnel({
                                 required
                             />
                         </FieldBlock>
-                        <FieldBlock label="Rucher">
-                            <NativeSelect
-                                value={hiveForm.apiary_id}
-                                onChange={(event) => handleHiveApiaryChange(event.target.value)}
-                                required
-                            >
-                                <option value="">Choisir un rucher</option>
-                                {apiaries.map((apiary) => (
-                                    <option key={apiary.id} value={apiary.id}>
-                                        {apiary.name}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </FieldBlock>
+                        <div className="radius-subpanel flex items-center border border-border/60 bg-secondary/30 px-4 py-3">
+                            <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Mise en service</p>
+                                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                    Choisis le rucher, le statut initial puis ajoute le contexte utile.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,0.65fr)_minmax(0,0.35fr)]">
-                        <FieldBlock label="Notes de contexte">
-                            <Textarea
-                                rows={5}
-                                value={hiveForm.notes}
-                                onChange={(event) => setHiveForm({ ...hiveForm, notes: event.target.value })}
-                                placeholder="Observations utiles pour le suivi, comportement, repere physique..."
-                                className="min-h-32 rounded-2xl"
-                            />
-                        </FieldBlock>
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                        <div className="grid gap-4">
+                            <FieldBlock label="Rucher">
+                                <NativeSelect
+                                    value={hiveForm.apiary_id}
+                                    onChange={(event) => handleHiveApiaryChange(event.target.value)}
+                                    required
+                                >
+                                    <option value="">Choisir un rucher</option>
+                                    {apiaries.map((apiary) => (
+                                        <option key={apiary.id} value={apiary.id}>
+                                            {apiary.name}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                            </FieldBlock>
+
+                            <FieldBlock label="Notes de contexte">
+                                <Textarea
+                                    rows={6}
+                                    value={hiveForm.notes}
+                                    onChange={(event) => setHiveForm({ ...hiveForm, notes: event.target.value })}
+                                    placeholder="Observations utiles pour le suivi, comportement, repere physique..."
+                                    className="min-h-36 rounded-2xl"
+                                />
+                            </FieldBlock>
+                        </div>
 
                         <div className="space-y-4 rounded-[24px] border border-border/70 bg-secondary/35 p-4">
                             <FieldBlock label="Statut initial">
@@ -103,7 +114,7 @@ export function HiveCreationFunnel({
                             </FieldBlock>
 
                             {selectedApiary ? (
-                                <div className="rounded-[20px] border border-border/70 bg-background/80 p-4">
+                                <div className="radius-subpanel border border-border/70 bg-background/80 p-4">
                                     <div className="flex items-center gap-2">
                                         <MapPinned className="size-4 text-primary" />
                                         <p className="text-sm font-medium text-foreground">{selectedApiary.name}</p>
@@ -112,7 +123,13 @@ export function HiveCreationFunnel({
                                         Lat {selectedApiary.latitude ?? "-"} / Lon {selectedApiary.longitude ?? "-"}
                                     </p>
                                 </div>
-                            ) : null}
+                            ) : (
+                                <div className="radius-subpanel border border-dashed border-border/65 bg-background/60 p-4">
+                                    <p className="text-sm leading-6 text-muted-foreground">
+                                        Selectionne un rucher pour afficher sa position et preparer le contexte de la ruche.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 

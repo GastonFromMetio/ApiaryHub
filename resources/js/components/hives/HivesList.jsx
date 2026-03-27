@@ -3,7 +3,7 @@ import { CloudSun, Pencil, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState, FieldBlock, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
+import { EmptyState, FieldBlock, FilterToolbar, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
 import { HIVE_STATUSES } from "@/constants";
 
 export function HivesList({
@@ -35,20 +35,20 @@ export function HivesList({
             action={<StatusBadge variant="secondary">{hives.length} / {totalHives}</StatusBadge>}
             contentClassName="grid gap-4"
         >
-            <div className="grid gap-4 rounded-[24px] border border-border/70 bg-secondary/35 p-4 md:grid-cols-[minmax(0,0.9fr)_repeat(2,minmax(0,0.55fr))]">
-                <FieldBlock label="Recherche">
+            <FilterToolbar className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_repeat(2,minmax(0,0.55fr))]">
+                <FieldBlock label="Recherche" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Nom ou repere"
-                            className="h-11 rounded-xl pl-10"
+                            className="h-10 rounded-xl border-border/55 bg-background/78 pl-10 shadow-none"
                         />
                     </div>
                 </FieldBlock>
-                <FieldBlock label="Rucher">
-                    <NativeSelect value={selectedApiaryFilter} onChange={(event) => setSelectedApiaryFilter(event.target.value)}>
+                <FieldBlock label="Rucher" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
+                    <NativeSelect value={selectedApiaryFilter} onChange={(event) => setSelectedApiaryFilter(event.target.value)} className="h-10 border-border/55 bg-background/78 shadow-none">
                         <option value="all">Tous</option>
                         {apiaries.map((apiary) => (
                             <option key={apiary.id} value={String(apiary.id)}>
@@ -57,8 +57,8 @@ export function HivesList({
                         ))}
                     </NativeSelect>
                 </FieldBlock>
-                <FieldBlock label="Statut">
-                    <NativeSelect value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <FieldBlock label="Statut" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
+                    <NativeSelect value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 border-border/55 bg-background/78 shadow-none">
                         <option value="all">Tous</option>
                         {HIVE_STATUSES.map((status) => (
                             <option key={status} value={status}>
@@ -67,7 +67,7 @@ export function HivesList({
                         ))}
                     </NativeSelect>
                 </FieldBlock>
-            </div>
+            </FilterToolbar>
 
             {hives.length === 0 ? (
                 <EmptyState
@@ -81,7 +81,7 @@ export function HivesList({
 
                     return (
                         <div
-                            className="rounded-[26px] border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
+                            className="radius-panel border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
                             key={hive.id}
                         >
                             {isEditing ? (

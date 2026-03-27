@@ -67,7 +67,7 @@ export function AuthPanel({
 
     return (
         <div className="grid min-h-[calc(100svh-2rem)] gap-6 lg:grid-cols-[1.15fr_0.92fr]">
-            <section className="relative overflow-hidden rounded-[36px] border border-border/70 bg-[linear-gradient(145deg,rgba(21,54,42,0.96),rgba(31,72,56,0.92)_42%,rgba(246,182,74,0.18)_100%)] p-6 text-primary-foreground shadow-[0_40px_120px_-60px_rgba(19,31,24,0.85)] lg:p-10">
+            <section className="radius-shell relative overflow-hidden border border-border/70 bg-[linear-gradient(145deg,rgba(21,54,42,0.96),rgba(31,72,56,0.92)_42%,rgba(246,182,74,0.18)_100%)] p-6 text-primary-foreground shadow-[0_40px_120px_-60px_rgba(19,31,24,0.85)] lg:p-10">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,245,214,0.26),transparent_24%),radial-gradient(circle_at_82%_22%,rgba(250,195,87,0.28),transparent_20%),linear-gradient(120deg,transparent_0%,rgba(255,255,255,0.03)_42%,transparent_80%)]" />
                 <div className="absolute -left-10 top-16 h-52 w-52 rounded-full border border-white/12 bg-white/6 blur-2xl" />
                 <div className="absolute bottom-[-5rem] right-[-2rem] h-64 w-64 rounded-full border border-white/10 bg-amber-200/12 blur-3xl" />
@@ -75,7 +75,7 @@ export function AuthPanel({
                 <div className="relative flex h-full flex-col justify-between gap-10">
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                            <div className="flex size-14 items-center justify-center rounded-[22px] border border-white/15 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                            <div className="radius-subpanel flex size-14 items-center justify-center border border-white/15 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
                                 <img
                                     src="/branding/apiaryhub_logo_seul.png"
                                     alt="ApiaryHub"
@@ -111,7 +111,7 @@ export function AuthPanel({
                             return (
                                 <article
                                     key={feature.title}
-                                    className="rounded-[28px] border border-white/12 bg-white/8 p-5 backdrop-blur-sm"
+                                    className="radius-panel border border-white/12 bg-white/8 p-5 backdrop-blur-sm"
                                 >
                                     <div className="flex size-11 items-center justify-center rounded-2xl border border-white/12 bg-white/10">
                                         <Icon className="size-5" />
@@ -126,7 +126,7 @@ export function AuthPanel({
             </section>
 
             <div className="flex items-center justify-center">
-                <Card className="w-full max-w-xl rounded-[32px] border-border/70 bg-card/92 shadow-[0_30px_100px_-60px_rgba(68,50,20,0.45)] backdrop-blur">
+                <Card className="radius-shell w-full max-w-xl border-border/70 bg-card/92 shadow-[0_30px_100px_-60px_rgba(68,50,20,0.45)] backdrop-blur">
                     <CardHeader className="space-y-4 border-b border-border/60 bg-gradient-to-b from-background to-secondary/35">
                         <div className="flex items-center justify-between gap-3">
                             <div>
@@ -137,7 +137,7 @@ export function AuthPanel({
                                     {TITLES[authMode] || TITLES.login}
                                 </CardTitle>
                             </div>
-                            <div className="flex size-12 items-center justify-center rounded-[20px] border border-border/70 bg-background shadow-xs">
+                            <div className="radius-subpanel flex size-12 items-center justify-center border border-border/70 bg-background shadow-xs">
                                 <KeyRound className="size-5 text-foreground" />
                             </div>
                         </div>
@@ -162,7 +162,7 @@ export function AuthPanel({
                             ) : null}
 
                             {authMode === "verify-pending" ? (
-                                <div className="space-y-4 rounded-[24px] border border-border bg-secondary/45 p-5">
+                                <div className="radius-panel space-y-4 border border-border bg-secondary/45 p-5">
                                     <div className="space-y-2">
                                         <h3 className="font-display text-2xl text-foreground">Encore une etape</h3>
                                         <p className="text-sm leading-6 text-muted-foreground">

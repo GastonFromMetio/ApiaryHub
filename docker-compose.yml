@@ -17,7 +17,6 @@ services:
       APP_DEBUG: "${APP_DEBUG:-true}"
       APP_URL: ${APP_URL:-http://127.0.0.1:8000}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
-      ALLOW_DEMO_SEED: "${ALLOW_DEMO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
       SESSION_DOMAIN: ${SESSION_DOMAIN:-127.0.0.1}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-127.0.0.1:8000,localhost:8000}
@@ -47,6 +46,8 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@apiaryhub.local}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ApiaryHub}
       FRONTEND_URL: ${FRONTEND_URL:-http://127.0.0.1:8000}
+    volumes:
+      - .:/var/www/html
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
 
@@ -70,7 +71,6 @@ services:
       APP_DEBUG: "${APP_DEBUG:-true}"
       APP_URL: ${APP_URL:-http://127.0.0.1:8000}
       APP_AUTO_SEED: "${APP_AUTO_SEED:-false}"
-      ALLOW_DEMO_SEED: "${ALLOW_DEMO_SEED:-false}"
       SESSION_SECURE_COOKIE: "${SESSION_SECURE_COOKIE:-false}"
       SESSION_DOMAIN: ${SESSION_DOMAIN:-127.0.0.1}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-127.0.0.1:8000,localhost:8000}
@@ -104,6 +104,26 @@ services:
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@apiaryhub.local}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ApiaryHub}
       FRONTEND_URL: ${FRONTEND_URL:-http://127.0.0.1:8000}
+    volumes:
+      - .:/var/www/html
+
+  vite:
+    image: node:22-alpine
+    container_name: apiaryhub-vite
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -lc "if [ ! -d node_modules/vite ]; then npm ci; fi && npm run dev -- --host 0.0.0.0 --port ${VITE_DEV_PORT:-5173}"
+    environment:
+      VITE_DEV_PORT: ${VITE_DEV_PORT:-5173}
+      VITE_DEV_SERVER_URL: ${VITE_DEV_SERVER_URL:-http://localhost:5173}
+      VITE_HMR_HOST: ${VITE_HMR_HOST:-localhost}
+      VITE_HMR_PORT: ${VITE_HMR_PORT:-5173}
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-true}
+    volumes:
+      - .:/var/www/html
+      - vite_node_modules:/var/www/html/node_modules
+    ports:
+      - "${VITE_BIND:-127.0.0.1}:${VITE_DEV_PORT:-5173}:5173"
 
   mysql:
     image: mysql:8.4
@@ -150,3 +170,4 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  vite_node_modules:

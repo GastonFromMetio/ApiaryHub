@@ -5,23 +5,23 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: 44 40% 96%;
+    --background: 43 30% 94%;
     --foreground: 154 26% 14%;
-    --card: 44 45% 98%;
+    --card: 43 36% 96%;
     --card-foreground: 154 26% 14%;
-    --popover: 44 45% 98%;
+    --popover: 43 36% 96%;
     --popover-foreground: 154 26% 14%;
     --primary: 154 38% 24%;
     --primary-foreground: 45 44% 96%;
-    --secondary: 42 42% 90%;
+    --secondary: 42 28% 88%;
     --secondary-foreground: 154 26% 18%;
-    --muted: 40 34% 88%;
+    --muted: 40 24% 86%;
     --muted-foreground: 150 11% 40%;
     --accent: 40 92% 66%;
     --accent-foreground: 28 70% 18%;
     --destructive: 10 58% 44%;
     --destructive-foreground: 45 40% 96%;
-    --border: 40 28% 80%;
+    --border: 40 24% 78%;
     --input: 40 26% 78%;
     --ring: 154 34% 34%;
     --chart-1: 154 38% 28%;
@@ -30,7 +30,7 @@
     --chart-4: 20 70% 58%;
     --chart-5: 154 18% 46%;
     --radius: 1.25rem;
-    --shell-topbar: 44 41% 95%;
+    --shell-topbar: 42 30% 91%;
     --sidebar: 154 23% 16%;
     --sidebar-foreground: 43 30% 92%;
     --sidebar-primary: 40 92% 67%;
@@ -39,6 +39,10 @@
     --sidebar-accent-foreground: 43 28% 94%;
     --sidebar-border: 154 16% 24%;
     --sidebar-ring: 40 92% 67%;
+    --radius-shell: 2rem;
+    --radius-panel: 1.75rem;
+    --radius-subpanel: 1.5rem;
+    --radius-control: 1rem;
 }
 
 .dark {
@@ -130,16 +134,18 @@ body {
 
 html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable both-edges;
 }
 
 body {
     position: relative;
     font-family: var(--font-sans);
     color: hsl(var(--foreground));
+    overflow-x: clip;
     background:
-        radial-gradient(circle at top left, hsla(40, 92%, 66%, 0.18), transparent 18%),
-        radial-gradient(circle at 82% 12%, hsla(154, 38%, 24%, 0.16), transparent 24%),
-        linear-gradient(180deg, hsl(var(--background)) 0%, hsl(44 36% 92%) 100%);
+        radial-gradient(circle at top left, hsla(40, 92%, 66%, 0.16), transparent 20%),
+        radial-gradient(circle at 78% 10%, hsla(154, 38%, 24%, 0.18), transparent 28%),
+        linear-gradient(180deg, hsl(var(--background)) 0%, hsl(40 24% 87%) 100%);
 }
 
 body::before {
@@ -147,12 +153,12 @@ body::before {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.32;
+    opacity: 0.24;
     background-image:
         linear-gradient(30deg, hsla(40, 30%, 60%, 0.08) 12%, transparent 12.5%, transparent 87%, hsla(40, 30%, 60%, 0.08) 87.5%, hsla(40, 30%, 60%, 0.08)),
         linear-gradient(150deg, hsla(40, 30%, 60%, 0.08) 12%, transparent 12.5%, transparent 87%, hsla(40, 30%, 60%, 0.08) 87.5%, hsla(40, 30%, 60%, 0.08)),
         linear-gradient(90deg, hsla(40, 30%, 60%, 0.06) 2%, transparent 2.5%, transparent 97%, hsla(40, 30%, 60%, 0.06) 97.5%, hsla(40, 30%, 60%, 0.06));
-    background-size: 76px 132px;
+    background-size: 72px 124px;
     background-position: center top;
     mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), transparent 86%);
 }
@@ -163,6 +169,7 @@ body.no-scroll {
 
 #app {
     min-height: 100svh;
+    overflow-x: clip;
 }
 
 h1,
@@ -190,10 +197,51 @@ select {
     color: hsl(var(--foreground));
 }
 
+.radius-shell {
+    border-radius: var(--radius-shell);
+}
+
+.radius-panel {
+    border-radius: var(--radius-panel);
+}
+
+.radius-subpanel {
+    border-radius: var(--radius-subpanel);
+}
+
+.radius-control {
+    border-radius: var(--radius-control);
+}
+
+.app-shell-canvas {
+    border-radius: calc(var(--radius-shell) + 0.35rem);
+    border: 1px solid hsl(var(--border) / 0.5);
+    background:
+        radial-gradient(circle at top left, hsla(40, 92%, 66%, 0.16), transparent 22%),
+        radial-gradient(circle at 82% 16%, hsla(154, 38%, 24%, 0.1), transparent 28%),
+        linear-gradient(180deg, hsla(43, 36%, 96%, 0.88) 0%, hsla(41, 24%, 91%, 0.84) 100%);
+    box-shadow:
+        0 34px 110px -82px rgba(31, 24, 17, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.46);
+    backdrop-filter: blur(7px);
+}
+
+.app-shell-canvas::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+        linear-gradient(125deg, transparent 0%, rgba(255, 255, 255, 0.3) 20%, transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 34%);
+}
+
 .apiary-map {
     height: 22rem;
     overflow: hidden;
-    border-radius: 1.5rem;
+    border-radius: var(--radius-subpanel);
     border: 1px solid hsl(var(--border));
     box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.35);
 }
@@ -212,6 +260,25 @@ select {
     border-color: hsl(var(--border)) !important;
     background: hsl(var(--background)) !important;
     color: hsl(var(--foreground)) !important;
+}
+
+.leaflet-control-zoom,
+.leaflet-bar {
+    overflow: hidden;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: var(--radius-control) !important;
+    box-shadow: 0 16px 34px -24px rgba(36, 28, 18, 0.45);
+}
+
+.leaflet-control-zoom a,
+.leaflet-bar a {
+    border-radius: 0 !important;
+    border-width: 0 !important;
+}
+
+.leaflet-control-zoom a + a,
+.leaflet-bar a + a {
+    border-top: 1px solid hsl(var(--border)) !important;
 }
 
 .leaflet-popup-content-wrapper,

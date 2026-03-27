@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\NewAccessToken;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -60,6 +61,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function apiaries(): HasMany
     {
         return $this->hasMany(Apiary::class);
+    }
+
+    public function issueApiToken(string $name = 'api-token'): NewAccessToken
+    {
+        $expiration = config('sanctum.expiration');
+        $expiresAt = is_numeric($expiration) ? now()->addMinutes((int) $expiration) : null;
+
+        return $this->createToken($name, ['*'], $expiresAt);
     }
 
     public function sendEmailVerificationNotification(): void

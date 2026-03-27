@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, ClipboardPlus, ShieldCheck, WavesLadder } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, FieldBlock, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
+
+const RECENT_ACTIVITY_PAGE_SIZE = 5;
 
 function formatDate(value) {
     if (!value) {
@@ -36,6 +38,8 @@ export function FieldTab({
     onOpenJournal,
     onOpenCompliance,
 }) {
+    const [recentActivityPage, setRecentActivityPage] = useState(1);
+
     const priorities = useMemo(() => {
         const items = [];
 
@@ -98,6 +102,17 @@ export function FieldTab({
 
     const hasReadingHives = readingsHives.length > 0;
     const hasActionHives = actionsHives.length > 0;
+    const totalRecentActivityPages = Math.max(1, Math.ceil(recentActivity.length / RECENT_ACTIVITY_PAGE_SIZE));
+    const currentRecentActivityPage = Math.min(recentActivityPage, totalRecentActivityPages);
+    const paginatedRecentActivity = useMemo(() => {
+        const startIndex = (currentRecentActivityPage - 1) * RECENT_ACTIVITY_PAGE_SIZE;
+
+        return recentActivity.slice(startIndex, startIndex + RECENT_ACTIVITY_PAGE_SIZE);
+    }, [currentRecentActivityPage, recentActivity]);
+    const currentRangeStart = recentActivity.length === 0 ? 0 : ((currentRecentActivityPage - 1) * RECENT_ACTIVITY_PAGE_SIZE) + 1;
+    const currentRangeEnd = recentActivity.length === 0
+        ? 0
+        : Math.min(currentRecentActivityPage * RECENT_ACTIVITY_PAGE_SIZE, recentActivity.length);
 
     return (
         <section className="grid gap-6">
@@ -121,15 +136,15 @@ export function FieldTab({
                         Tout ce qu il faut pour noter une visite sans perdre de temps.
                     </p>
                     <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                        <div className="radius-subpanel border border-white/10 bg-white/8 p-4">
                             <p className="text-xs uppercase tracking-[0.22em] text-primary-foreground/58">Mesures</p>
                             <p className="mt-2 text-2xl font-semibold text-primary-foreground">{recentActivity.filter((entry) => entry.kind === "Mesure").length}</p>
                         </div>
-                        <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                        <div className="radius-subpanel border border-white/10 bg-white/8 p-4">
                             <p className="text-xs uppercase tracking-[0.22em] text-primary-foreground/58">Actions</p>
                             <p className="mt-2 text-2xl font-semibold text-primary-foreground">{recentActivity.filter((entry) => entry.kind === "Action").length}</p>
                         </div>
-                        <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                        <div className="radius-subpanel border border-white/10 bg-white/8 p-4">
                             <p className="text-xs uppercase tracking-[0.22em] text-primary-foreground/58">Ruches actives</p>
                             <p className="mt-2 text-2xl font-semibold text-primary-foreground">{hives.length}</p>
                         </div>
@@ -360,7 +375,7 @@ export function FieldTab({
                         Voir la conformite
                     </Button>
                 }
-                contentClassName="grid gap-4 lg:grid-cols-2"
+                contentClassName="grid gap-4"
             >
                 {recentActivity.length === 0 ? (
                     <EmptyState
@@ -373,21 +388,59 @@ export function FieldTab({
                         }
                     />
                 ) : (
-                    recentActivity.map((entry) => (
-                        <article
-                            key={entry.id}
-                            className="rounded-[24px] border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
-                        >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <StatusBadge className={entry.kind === "Action" ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
-                                    {entry.kind}
+                    <>
+                        <div className="overflow-hidden rounded-[24px] border border-border/70 bg-background/84 shadow-[0_18px_48px_-38px_rgba(40,31,21,0.35)]">
+                            <ul className="divide-y divide-border/55">
+                                {paginatedRecentActivity.map((entry) => (
+                                    <li key={entry.id} className="px-5 py-4">
+                                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <StatusBadge className={entry.kind === "Action" ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
+                                                        {entry.kind}
+                                                    </StatusBadge>
+                                                    <p className="truncate text-base font-medium text-foreground">{entry.title}</p>
+                                                </div>
+                                                <p className="mt-2 text-sm leading-6 text-muted-foreground">{entry.subtitle}</p>
+                                            </div>
+                                            <p className="shrink-0 text-sm text-muted-foreground">{formatDate(entry.timestamp)}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-muted-foreground">
+                                Affichage {currentRangeStart}-{currentRangeEnd} sur {recentActivity.length}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl"
+                                    onClick={() => setRecentActivityPage((page) => Math.max(1, page - 1))}
+                                    disabled={currentRecentActivityPage === 1}
+                                >
+                                    Precedent
+                                </Button>
+                                <StatusBadge variant="secondary">
+                                    Page {currentRecentActivityPage} / {totalRecentActivityPages}
                                 </StatusBadge>
-                                <p className="text-sm text-muted-foreground">{formatDate(entry.timestamp)}</p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl"
+                                    onClick={() => setRecentActivityPage((page) => Math.min(totalRecentActivityPages, page + 1))}
+                                    disabled={currentRecentActivityPage === totalRecentActivityPages}
+                                >
+                                    Suivant
+                                </Button>
                             </div>
-                            <p className="mt-4 font-display text-2xl text-foreground">{entry.title}</p>
-                            <p className="mt-2 text-sm leading-7 text-muted-foreground">{entry.subtitle}</p>
-                        </article>
-                    ))
+                        </div>
+                    </>
                 )}
             </SectionCard>
         </section>

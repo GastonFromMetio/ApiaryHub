@@ -3,7 +3,7 @@ import { ArrowLeft, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EmptyState, FieldBlock, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
+import { EmptyState, FieldBlock, FilterToolbar, NativeSelect, SectionCard, StatusBadge } from "@/components/app/app-ui";
 import { formatCountLabel } from "@/utils/text";
 
 function formatDate(value) {
@@ -92,41 +92,46 @@ export function JournalTab({
     return (
         <section className="grid gap-6">
             <SectionCard
-                title="Journal unifie"
+                title="Journal"
                 description="Historique des mesures et actions."
                 action={
-                    <Button type="button" variant="outline" className="rounded-xl" onClick={onOpenField}>
-                        <ArrowLeft className="size-4" />
-                        Retour terrain
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <StatusBadge variant="secondary">{formatCountLabel(filteredEntries.length, "entree", "entrees")}</StatusBadge>
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={onOpenField}>
+                            <ArrowLeft className="size-4" />
+                            Retour terrain
+                        </Button>
+                    </div>
                 }
+                contentClassName="grid gap-4 lg:grid-cols-2"
             >
-                <div className="grid gap-4 rounded-[24px] border border-border/70 bg-secondary/35 p-4 xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,0.55fr))]">
-                    <FieldBlock label="Recherche">
+                <FilterToolbar className="lg:col-span-2 grid gap-3 xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,0.55fr))]">
+                    <FieldBlock label="Recherche" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
                         <div className="relative">
                             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Ruche, rucher, type, note"
-                                className="h-11 rounded-xl pl-10"
+                                className="h-10 rounded-xl border-border/55 bg-background/78 pl-10 shadow-none"
                             />
                         </div>
                     </FieldBlock>
-                    <FieldBlock label="Type">
-                        <NativeSelect value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}>
+                    <FieldBlock label="Type" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
+                        <NativeSelect value={kindFilter} onChange={(event) => setKindFilter(event.target.value)} className="h-10 border-border/55 bg-background/78 shadow-none">
                             <option value="all">Tout</option>
                             <option value="mesure">Mesures</option>
                             <option value="action">Actions</option>
                         </NativeSelect>
                     </FieldBlock>
-                    <FieldBlock label="Rucher">
+                    <FieldBlock label="Rucher" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
                         <NativeSelect
                             value={apiaryFilter}
                             onChange={(event) => {
                                 setApiaryFilter(event.target.value);
                                 setHiveFilter("all");
                             }}
+                            className="h-10 border-border/55 bg-background/78 shadow-none"
                         >
                             <option value="all">Tous</option>
                             {apiaries.map((apiary) => (
@@ -136,8 +141,8 @@ export function JournalTab({
                             ))}
                         </NativeSelect>
                     </FieldBlock>
-                    <FieldBlock label="Ruche">
-                        <NativeSelect value={hiveFilter} onChange={(event) => setHiveFilter(event.target.value)}>
+                    <FieldBlock label="Ruche" labelClassName="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/72">
+                        <NativeSelect value={hiveFilter} onChange={(event) => setHiveFilter(event.target.value)} className="h-10 border-border/55 bg-background/78 shadow-none">
                             <option value="all">Toutes</option>
                             {visibleHives.map((hive) => (
                                 <option key={hive.id} value={String(hive.id)}>
@@ -146,42 +151,39 @@ export function JournalTab({
                             ))}
                         </NativeSelect>
                     </FieldBlock>
-                </div>
-            </SectionCard>
+                </FilterToolbar>
 
-            <SectionCard
-                title="Historique"
-                description="Toutes les entrees filtrees."
-                action={<StatusBadge variant="secondary">{formatCountLabel(filteredEntries.length, "entree", "entrees")}</StatusBadge>}
-                contentClassName="grid gap-4 lg:grid-cols-2"
-            >
                 {filteredEntries.length === 0 ? (
                     <EmptyState
+                        className="lg:col-span-2"
                         title="Aucune entree ne correspond aux filtres"
                         description="Elargis les filtres ou retourne au terrain pour enregistrer de nouvelles mesures et interventions."
                     />
                 ) : (
-                    filteredEntries.map((entry) => (
-                        <article
-                            key={entry.id}
-                            className="rounded-[24px] border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
-                        >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                    <StatusBadge className={entry.kind === "action" ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
-                                        {entry.label}
-                                    </StatusBadge>
-                                    {entry.kind === "action" && entry.hiveName ? (
-                                        <StatusBadge variant="outline">{entry.hiveName}</StatusBadge>
-                                    ) : null}
-                                </div>
-                                <p className="text-sm text-muted-foreground">{formatDate(entry.timestamp)}</p>
-                            </div>
-                            <h3 className="mt-4 font-display text-2xl text-foreground">{entry.title}</h3>
-                            <p className="mt-2 text-sm text-muted-foreground">{entry.apiaryName}</p>
-                            <p className="mt-4 text-sm leading-7 text-muted-foreground">{entry.details}</p>
-                        </article>
-                    ))
+                    <div className="lg:col-span-2 overflow-hidden rounded-[24px] border border-border/70 bg-background/82 shadow-[0_18px_48px_-38px_rgba(40,31,21,0.35)]">
+                        <ul className="divide-y divide-border/55">
+                            {filteredEntries.map((entry) => (
+                                <li key={entry.id} className="px-5 py-4">
+                                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <StatusBadge className={entry.kind === "action" ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}>
+                                                    {entry.label}
+                                                </StatusBadge>
+                                                {entry.kind === "action" && entry.hiveName ? (
+                                                    <StatusBadge variant="outline">{entry.hiveName}</StatusBadge>
+                                                ) : null}
+                                            </div>
+                                            <h3 className="mt-3 font-display text-xl text-foreground">{entry.title}</h3>
+                                            <p className="mt-1 text-sm text-muted-foreground">{entry.apiaryName}</p>
+                                            <p className="mt-3 text-sm leading-6 text-muted-foreground">{entry.details}</p>
+                                        </div>
+                                        <p className="shrink-0 text-sm text-muted-foreground">{formatDate(entry.timestamp)}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </SectionCard>
         </section>

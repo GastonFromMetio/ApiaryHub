@@ -202,7 +202,7 @@ export function ApiariesTab({
                         return (
                             <div
                                 key={apiary.id}
-                                className="rounded-[26px] border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
+                                className="radius-panel border border-border/70 bg-background/80 p-5 shadow-[0_16px_40px_-32px_rgba(40,31,21,0.35)]"
                             >
                                 {isEditing ? (
                                     <div className="grid gap-4">

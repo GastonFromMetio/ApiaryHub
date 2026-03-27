@@ -12,9 +12,19 @@ export function SectionCard({
     children,
 }) {
     return (
-        <Card className={cn("overflow-hidden rounded-[28px] border-border/70 bg-card/90 shadow-[0_24px_80px_-48px_rgba(52,39,18,0.45)] backdrop-blur", className)}>
+        <Card
+            className={cn(
+                "radius-panel overflow-hidden border-border/65 bg-[linear-gradient(180deg,hsl(var(--card))/0.94,hsla(42,38%,95%,0.88))] shadow-[0_28px_84px_-54px_rgba(52,39,18,0.46)] backdrop-blur-sm",
+                className
+            )}
+        >
             {(title || description || action) && (
-                <CardHeader className={cn("flex flex-row items-start justify-between gap-4 border-b border-border/60 bg-gradient-to-r from-background via-background to-secondary/35", headerClassName)}>
+                <CardHeader
+                    className={cn(
+                        "flex flex-row items-start justify-between gap-4 border-b border-border/55 bg-gradient-to-r from-background/92 via-background/80 to-secondary/28",
+                        headerClassName
+                    )}
+                >
                     <div className="space-y-1.5">
                         {title ? <CardTitle className="font-display text-xl text-foreground">{title}</CardTitle> : null}
                         {description ? <CardDescription className="max-w-2xl text-sm leading-6 text-muted-foreground">{description}</CardDescription> : null}
@@ -43,7 +53,12 @@ export function MetricCard({
     };
 
     return (
-        <Card className={cn("relative overflow-hidden rounded-[24px] border-border/70 bg-card/95 shadow-[0_18px_50px_-36px_rgba(42,32,20,0.4)]", className)}>
+        <Card
+            className={cn(
+                "radius-subpanel relative overflow-hidden border-border/65 bg-[linear-gradient(180deg,hsl(var(--card))/0.96,hsla(42,34%,95%,0.86))] shadow-[0_22px_58px_-40px_rgba(42,32,20,0.4)] backdrop-blur-sm",
+                className
+            )}
+        >
             <div className={cn("absolute inset-x-0 top-0 h-24 bg-gradient-to-br", accentMap[accent] || accentMap.forest)} />
             <CardContent className="relative flex h-full min-h-32 flex-col justify-between gap-4 p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -67,13 +82,31 @@ export function FieldBlock({
     label,
     hint,
     className,
+    labelClassName,
+    hintClassName,
     children,
 }) {
     return (
         <div className={cn("grid gap-2", className)}>
-            {label ? <label className="text-sm font-medium text-foreground">{label}</label> : null}
+            {label ? <label className={cn("text-sm font-medium text-foreground", labelClassName)}>{label}</label> : null}
             {children}
-            {hint ? <p className="text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+            {hint ? <p className={cn("text-xs leading-5 text-muted-foreground", hintClassName)}>{hint}</p> : null}
+        </div>
+    );
+}
+
+export function FilterToolbar({
+    className,
+    children,
+}) {
+    return (
+        <div
+            className={cn(
+                "radius-subpanel border border-border/50 bg-[linear-gradient(180deg,hsl(var(--background))/0.7,hsla(43,34%,95%,0.58))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-sm",
+                className
+            )}
+        >
+            {children}
         </div>
     );
 }
@@ -112,7 +145,12 @@ export function EmptyState({
     className,
 }) {
     return (
-        <div className={cn("flex min-h-40 flex-col items-start justify-center rounded-[24px] border border-dashed border-border bg-secondary/35 p-6", className)}>
+        <div
+            className={cn(
+                "radius-subpanel flex min-h-40 flex-col items-start justify-center border border-dashed border-border/75 bg-[linear-gradient(180deg,hsl(var(--secondary))/0.52,hsla(43,34%,94%,0.78))] p-6 backdrop-blur-sm",
+                className
+            )}
+        >
             <div className="space-y-2">
                 <h3 className="font-display text-xl text-foreground">{title}</h3>
                 <p className="max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>

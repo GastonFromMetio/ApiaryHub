@@ -14,7 +14,6 @@ import {
 import { AuthPanel } from './components/auth/AuthPanel';
 import { AppShell } from './components/layout/AppShell';
 import { Skeleton } from '@/components/ui/skeleton';
-import { OnboardingDialog } from './components/onboarding/OnboardingDialog';
 import { apiRequest } from './lib/api';
 import { setupLeafletDefaultIcon } from './lib/leaflet';
 import { toDatetimeValue } from './utils/date';
@@ -24,9 +23,9 @@ setupLeafletDefaultIcon();
 const lazyNamed = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
 
 const TOKEN_STORAGE_KEY = 'apiaryhub_token';
+const TOKEN_EXPIRATION_STORAGE_KEY = 'apiaryhub_token_expires_at';
 const LEGACY_TOKEN_STORAGE_KEY = 'beewatch_token';
 const ACTIVE_TAB_STORAGE_PREFIX = 'apiaryhub_active_tab_';
-const ONBOARDING_STORAGE_PREFIX = 'apiaryhub_onboarding_v2_seen_';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const ADMIN_TAB = { id: 'admin', label: 'Administration' };
 const ACCOUNT_TAB = { id: 'account', label: 'Compte' };
@@ -69,7 +68,7 @@ function TabLoadingFallback() {
                 <Skeleton className="h-44 rounded-[28px]" />
                 <Skeleton className="h-44 rounded-[28px]" />
             </div>
-            <Skeleton className="h-72 rounded-[32px]" />
+            <Skeleton className="h-72 radius-shell" />
             <div className="grid gap-4 lg:grid-cols-2">
                 <Skeleton className="h-64 rounded-[28px]" />
                 <Skeleton className="h-64 rounded-[28px]" />
@@ -78,9 +77,49 @@ function TabLoadingFallback() {
     );
 }
 
+function getStoredSessionValue(key) {
+    if (typeof window === 'undefined') {
+        return '';
+    }
+
+    return window.sessionStorage.getItem(key)
+        || window.localStorage.getItem(key)
+        || '';
+}
+
+function isExpiredTimestamp(value) {
+    if (!value) {
+        return false;
+    }
+
+    const expirationTime = Date.parse(value);
+
+    return Number.isFinite(expirationTime) && expirationTime <= Date.now();
+}
+
 function App() {
     const [token, setToken] = useState(
-        () => localStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem(LEGACY_TOKEN_STORAGE_KEY) || ''
+        () => {
+            const storedToken = getStoredSessionValue(TOKEN_STORAGE_KEY) || getStoredSessionValue(LEGACY_TOKEN_STORAGE_KEY);
+            const storedExpiration = getStoredSessionValue(TOKEN_EXPIRATION_STORAGE_KEY);
+
+            if (!storedToken || isExpiredTimestamp(storedExpiration)) {
+                return '';
+            }
+
+            return storedToken;
+        }
+    );
+    const [tokenExpiration, setTokenExpiration] = useState(
+        () => {
+            const storedExpiration = getStoredSessionValue(TOKEN_EXPIRATION_STORAGE_KEY);
+
+            if (!storedExpiration || isExpiredTimestamp(storedExpiration)) {
+                return null;
+            }
+
+            return storedExpiration;
+        }
     );
     const [user, setUser] = useState(null);
     const [apiaries, setApiaries] = useState([]);
@@ -124,7 +163,6 @@ function App() {
     const [busy, setBusy] = useState(false);
     const [verificationBusy, setVerificationBusy] = useState(false);
     const [verificationNoticeDismissed, setVerificationNoticeDismissed] = useState(false);
-    const [onboardingOpen, setOnboardingOpen] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
     const [userLocation, setUserLocation] = useState(null);
@@ -155,8 +193,7 @@ function App() {
         }));
 
         return [...readingItems, ...actionItems]
-            .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
-            .slice(0, 6);
+            .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime());
     }, [readings, actions]);
 
     const filteredHives = useMemo(() => {
@@ -354,15 +391,19 @@ function App() {
             setError('');
 
             try {
-                const [me, apiaryData, hiveData] = await Promise.all([
-                    apiRequestWithSession('/api/user', { token }),
+                const me = await apiRequestWithSession('/api/user', { token });
+                const [apiaryData, hiveData, readingData, actionData] = await Promise.all([
                     apiRequestWithSession('/api/apiaries', { token }),
                     apiRequestWithSession('/api/hives', { token }),
+                    apiRequestWithSession('/api/readings', { token }),
+                    apiRequestWithSession('/api/actions', { token }),
                 ]);
 
                 setUser(me);
                 setApiaries(apiaryData);
                 setHives(hiveData);
+                setReadings(readingData);
+                setActions(actionData);
                 setAdminDashboard(null);
                 const savedTab = localStorage.getItem(`${ACTIVE_TAB_STORAGE_PREFIX}${me.id}`);
                 setActiveTab(resolveTabForUser(me, savedTab));
@@ -394,49 +435,28 @@ function App() {
     }, [token]);
 
     useEffect(() => {
-        if (!token) {
+        if (typeof window === 'undefined') {
             return;
         }
 
-        const loadReadingsAndActions = async () => {
-            setBusy(true);
-            setError('');
-
-            try {
-                await fetchReadingsAndActions(token);
-            } catch (loadError) {
-                if (!isSessionExpiredError(loadError)) {
-                    setError(loadError.message);
-                }
-            } finally {
-                setBusy(false);
-            }
-        };
-
-        loadReadingsAndActions();
-    }, [token]);
-
-    useEffect(() => {
         if (token) {
-            localStorage.setItem(TOKEN_STORAGE_KEY, token);
-            localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+            window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+            if (tokenExpiration) {
+                window.sessionStorage.setItem(TOKEN_EXPIRATION_STORAGE_KEY, tokenExpiration);
+            } else {
+                window.sessionStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            }
+            window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
         } else {
-            localStorage.removeItem(TOKEN_STORAGE_KEY);
-            localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+            window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.sessionStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+            window.localStorage.removeItem(TOKEN_EXPIRATION_STORAGE_KEY);
+            window.localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
         }
-    }, [token]);
-
-    useEffect(() => {
-        if (!token || !user?.id) {
-            setOnboardingOpen(false);
-            setVerificationNoticeDismissed(false);
-            return;
-        }
-
-        const onboardingSeen = localStorage.getItem(`${ONBOARDING_STORAGE_PREFIX}${user.id}`) === '1';
-        setOnboardingOpen(!onboardingSeen);
-        setVerificationNoticeDismissed(false);
-    }, [token, user?.id]);
+    }, [token, tokenExpiration]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || token) {
@@ -594,10 +614,10 @@ function App() {
         setBusy(false);
         setVerificationBusy(false);
         setVerificationNoticeDismissed(false);
-        setOnboardingOpen(false);
         setAdminLoading(false);
         setError('');
         setToken('');
+        setTokenExpiration(null);
         setUser(null);
         setApiaries([]);
         setHives([]);
@@ -690,6 +710,7 @@ function App() {
                 });
 
                 setToken(payload.token);
+                setTokenExpiration(payload.expires_at || null);
                 setActiveTab('field');
                 setInfo(payload.message || 'Connexion reussie.');
                 return;
@@ -848,14 +869,21 @@ function App() {
         setInfo('');
 
         try {
-            const updatedUser = await apiRequestWithSession('/api/account', {
+            const responsePayload = await apiRequestWithSession('/api/account', {
                 method: 'PUT',
                 token,
                 body: payload,
             });
 
+            const updatedUser = responsePayload?.user ?? responsePayload;
+
+            if (responsePayload?.token) {
+                setToken(responsePayload.token);
+                setTokenExpiration(responsePayload.expires_at || null);
+            }
+
             setUser(updatedUser);
-            setInfo('Compte mis a jour.');
+            setInfo(responsePayload?.session_rotated ? 'Compte mis a jour. Session renouvelee.' : 'Compte mis a jour.');
             return true;
         } catch (updateError) {
             if (!isSessionExpiredError(updateError)) {
@@ -1272,14 +1300,6 @@ function App() {
         return 'Profil et securite.';
     }, [activeTab]);
 
-    const setOnboardingVisibility = (open) => {
-        setOnboardingOpen(open);
-
-        if (!open && user?.id) {
-            localStorage.setItem(`${ONBOARDING_STORAGE_PREFIX}${user.id}`, '1');
-        }
-    };
-
     const renderContent = () => {
         const navigateToTab = (tabId) => startTransition(() => setActiveTab(tabId));
 
@@ -1424,12 +1444,12 @@ function App() {
     };
 
     return (
-        <main className="min-h-svh px-4 py-4 lg:px-6">
+        <main className="min-h-svh overflow-x-clip px-4 py-4 lg:px-6">
             {(error || info) && (
                 <div className="fixed right-4 top-4 z-[80] grid w-[min(92vw,26rem)] gap-3">
                     {error ? (
                         <div
-                            className="rounded-[22px] border border-destructive/25 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(146,46,32,0.55)] backdrop-blur"
+                            className="radius-subpanel border border-destructive/25 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(146,46,32,0.55)] backdrop-blur"
                             role="alert"
                         >
                             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-destructive">Erreur</p>
@@ -1438,7 +1458,7 @@ function App() {
                     ) : null}
                     {info ? (
                         <div
-                            className="rounded-[22px] border border-primary/20 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(31,73,57,0.45)] backdrop-blur"
+                            className="radius-subpanel border border-primary/20 bg-background/92 p-4 shadow-[0_24px_70px_-45px_rgba(31,73,57,0.45)] backdrop-blur"
                             role="status"
                         >
                             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Info</p>
@@ -1476,7 +1496,6 @@ function App() {
                     onResendVerification={resendVerificationEmailForConnectedUser}
                     onCheckVerification={checkVerificationStatus}
                     onDismissVerification={() => setVerificationNoticeDismissed(true)}
-                    onOpenOnboarding={() => setOnboardingOpen(true)}
                     onLogout={logout}
                 >
                     <Suspense fallback={<TabLoadingFallback />}>
@@ -1484,15 +1503,6 @@ function App() {
                     </Suspense>
                 </AppShell>
             )}
-
-            <OnboardingDialog
-                open={Boolean(token && onboardingOpen)}
-                onOpenChange={setOnboardingVisibility}
-                isAdmin={Boolean(user?.is_admin)}
-                onNavigate={(tabId) => startTransition(() => setActiveTab(tabId))}
-                currentTab={activeTab}
-                userNeedsEmailVerification={userNeedsEmailVerification}
-            />
         </main>
     );
 }
