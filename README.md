@@ -36,13 +36,14 @@ Le fichier `deploy/nginx/apiaryhub.server.conf` n'est pas necessaire dans ce mod
 Variables principales a fournir dans Dokploy:
 
 ```env
+APP_KEY=base64:...
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://apiaryhub.fr
+APP_URL=https://apiaryhub.metio-dev.fr
 APP_AUTO_SEED=false
 SESSION_SECURE_COOKIE=true
-SESSION_DOMAIN=apiaryhub.fr
-SANCTUM_STATEFUL_DOMAINS=apiaryhub.fr,www.apiaryhub.fr
+SESSION_DOMAIN=apiaryhub.metio-dev.fr
+SANCTUM_STATEFUL_DOMAINS=apiaryhub.metio-dev.fr
 TRUSTED_PROXIES=*
 DB_CONNECTION=mysql
 DB_HOST=mysql
@@ -65,10 +66,13 @@ Note importante:
 - la stack Docker utilise toujours MySQL et Redis dans les conteneurs, meme si ton `.env` local hors Docker est configure autrement
 - en local, le compose reutilise aussi `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` pour rester compatible avec les volumes deja initialises
 - si tu veux separer completement les identifiants Docker de ton `.env` local, utilise `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
+- sur Dokploy, renseigne explicitement `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` et `MYSQL_ROOT_PASSWORD`; ne compte pas sur les valeurs par defaut en production
+- sur Dokploy, l'interface `Environment` est la source de verite; l'image Docker n'embarque plus de `.env` initialise depuis `.env.example`
+- avec `SYNC_ENV_FILE=true`, l'entrypoint ecrit les variables runtime critiques dans `/var/www/html/.env` pour garder Laravel aligne avec la config Dokploy
+- si le volume MySQL existe deja, changer `DB_USERNAME` ou `DB_PASSWORD` dans Dokploy ne met pas a jour automatiquement l'utilisateur MySQL deja cree; il faut soit recreer le volume, soit modifier l'utilisateur/mot de passe dans MySQL
 
 DNS attendu:
-- `apiaryhub.fr` -> IP publique du VPS
-- `www.apiaryhub.fr` -> IP publique du VPS
+- `apiaryhub.metio-dev.fr` -> IP publique du VPS
 
 Recommandations:
 - utiliser des mots de passe forts (DB, root DB)
@@ -112,9 +116,9 @@ MAIL_USERNAME=your-brevo-login
 MAIL_PASSWORD=your-brevo-smtp-key
 MAIL_QUEUE=mail
 QUEUE_WORKER_QUEUE=mail,default
-MAIL_FROM_ADDRESS=noreply@apiaryhub.fr
+MAIL_FROM_ADDRESS=noreply@apiaryhub.metio-dev.fr
 MAIL_FROM_NAME=ApiaryHub
-APP_URL=https://apiaryhub.fr
+APP_URL=https://apiaryhub.metio-dev.fr
 ```
 
 Notes:

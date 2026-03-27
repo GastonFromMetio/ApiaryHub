@@ -30,10 +30,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-RUN cp .env.example .env \
-    && mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs bootstrap/cache \
+RUN mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs bootstrap/cache \
     && composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
-    && php artisan key:generate --force --ansi \
     && chown -R www-data:www-data storage bootstrap/cache
 
 COPY --from=frontend /app/public/build ./public/build

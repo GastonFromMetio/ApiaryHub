@@ -7,11 +7,15 @@ cd /var/www/html
 mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 
-if [ ! -f .env ]; then
+SYNC_ENV_FILE="${SYNC_ENV_FILE:-false}"
+
+if [ ! -f .env ] && [ "$SYNC_ENV_FILE" != "true" ]; then
   cp .env.example .env
 fi
 
-SYNC_ENV_FILE="${SYNC_ENV_FILE:-false}"
+if [ ! -f .env ]; then
+  touch .env
+fi
 
 set_env_key() {
   key="$1"
@@ -46,6 +50,7 @@ file_put_contents($file, implode(PHP_EOL, $lines) . PHP_EOL);
 
 if [ "$SYNC_ENV_FILE" = "true" ]; then
   # Keep runtime infra settings aligned with Docker Compose environment.
+  set_env_key APP_KEY "${APP_KEY:-}"
   set_env_key DB_HOST "${DB_HOST:-}"
   set_env_key DB_PORT "${DB_PORT:-}"
   set_env_key DB_DATABASE "${DB_DATABASE:-}"
